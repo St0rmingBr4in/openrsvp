@@ -17,6 +17,23 @@ services:
       - SMTP_FROM=noreply@openrsvp.local
       - BASE_URL=http://localhost:8091
       - FEEDBACK_EMAIL=feedback@openrsvp.local
+    depends_on:
+      - mailpit
+    networks:
+      - openrsvp-net
+    restart: unless-stopped
+
+  # Development mail catcher. SMTP_HOST above names this service, so the stack
+  # cannot send mail without it. Magic link is the only way to sign in, so a
+  # missing mail catcher stops all logins.
+  # The API still answers with the generic anti-enumeration message when a send
+  # fails, so the failure is only visible in the container log.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      # Web UI on the loopback interface only. SMTP on 1025 stays on the
+      # compose network and gets no host port.
+      - "127.0.0.1:8025:8025"
     networks:
       - openrsvp-net
     restart: unless-stopped
