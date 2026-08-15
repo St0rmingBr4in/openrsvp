@@ -31,11 +31,38 @@ func init() {
 	messagePolicy.RequireNoFollowOnLinks(true)
 }
 
-// SanitizeStrict strips all HTML tags from the input string.
-// The result is unescaped because bluemonday HTML-encodes characters like
-// apostrophes (&#39;) which is wrong for plain-text storage.
+// sanitizeStrictMaxPasses limits the loop in SanitizeStrict. Ordinary text
+// reaches a fixed point on the first pass. Only deeply nested encoding needs
+// more than two.
+const sanitizeStrictMaxPasses = 5
+
+// SanitizeStrict strips all HTML tags from the input string and returns plain
+// text. Values stored through this function are rendered by escaping sinks, so
+// the result keeps characters like the apostrophe in their decoded form.
+//
+// The sanitizer and the unescape step run together until the output stops
+// changing. A single pass is not sufficient: bluemonday encodes the tags it
+// finds, and an unescape after it turns "&lt;script&gt;" back into a live tag.
+// That is the defect this loop closes.
+//
+// The exit condition is the security property. The loop stops only when a
+// further sanitize and unescape leave the value unchanged, which can happen
+// only when the value holds nothing the HTML tokenizer reads as a tag, even
+// after every entity is decoded. A stripped tag cannot come back, because the
+// sanitizer deletes those bytes and an unescape cannot recreate them.
+//
+// Text that does not converge inside the pass limit gets the escaped form,
+// which is inert. The failure mode is therefore closed.
 func SanitizeStrict(input string) string {
-	return html.UnescapeString(strictPolicy.Sanitize(input))
+	s := input
+	for i := 0; i < sanitizeStrictMaxPasses; i++ {
+		out := html.UnescapeString(strictPolicy.Sanitize(s))
+		if out == s {
+			return out
+		}
+		s = out
+	}
+	return strictPolicy.Sanitize(s)
 }
 
 // SanitizeMessage allows limited HTML for message bodies. Permitted elements
