@@ -214,8 +214,13 @@ func TestService_UnsubscribeFooter_AbsentWithoutSuppression(t *testing.T) {
 
 // newTestHandler builds a Handler with stub auth/owner funcs for webhook tests.
 func newTestHandler(tracking *TrackingService, svc *Service, suppressor Suppressor) *Handler {
+	return newTestHandlerWithSecret(tracking, svc, suppressor, "")
+}
+
+// newTestHandlerWithSecret builds a Handler with a webhook shared secret.
+func newTestHandlerWithSecret(tracking *TrackingService, svc *Service, suppressor Suppressor, secret string) *Handler {
 	return NewHandler(
-		tracking, svc, suppressor,
+		tracking, svc, suppressor, secret,
 		func(next http.Handler) http.Handler { return next },
 		func(context.Context) (string, bool) { return "", false },
 		func(context.Context, string, string) error { return nil },

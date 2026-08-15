@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -39,6 +40,7 @@ type Handler struct {
 	tracking       *TrackingService
 	service        *Service
 	suppressor     Suppressor
+	webhookSecret  string
 	authMiddleware func(http.Handler) http.Handler
 	organizerFrom  OrganizerFromCtx
 	checkOwner     EventOwnershipChecker
@@ -46,11 +48,14 @@ type Handler struct {
 }
 
 // NewHandler creates a new notification Handler. suppressor may be nil to
-// disable suppression on inbound bounce/complaint webhooks.
+// disable suppression on inbound bounce/complaint webhooks. webhookSecret is
+// the shared secret the provider webhooks must present. An empty secret makes
+// those routes answer 404 for every request.
 func NewHandler(
 	tracking *TrackingService,
 	service *Service,
 	suppressor Suppressor,
+	webhookSecret string,
 	authMiddleware func(http.Handler) http.Handler,
 	organizerFrom OrganizerFromCtx,
 	checkOwner EventOwnershipChecker,
@@ -60,6 +65,7 @@ func NewHandler(
 		tracking:       tracking,
 		service:        service,
 		suppressor:     suppressor,
+		webhookSecret:  webhookSecret,
 		authMiddleware: authMiddleware,
 		organizerFrom:  organizerFrom,
 		checkOwner:     checkOwner,
@@ -74,10 +80,15 @@ func (h *Handler) Routes() chi.Router {
 	// Public tracking endpoints (no auth).
 	r.Get("/track/open/{logId}", h.handleTrackOpen)
 
-	// Public provider delivery webhooks (no auth, CSRF-exempt — providers
-	// cannot present CSRF tokens). Mounted public by the orchestrator.
-	r.Post("/webhooks/sendgrid", h.handleSendGridWebhook)
-	r.Post("/webhooks/ses", h.handleSESWebhook)
+	// Provider delivery webhooks (no session auth, CSRF-exempt — providers
+	// cannot present CSRF tokens). A shared secret in the query string gates
+	// them instead. Always register the routes, because an unregistered path
+	// falls through to the SPA fallback, which answers 200.
+	r.Group(func(hook chi.Router) {
+		hook.Use(h.requireWebhookSecret)
+		hook.Post("/webhooks/sendgrid", h.handleSendGridWebhook)
+		hook.Post("/webhooks/ses", h.handleSESWebhook)
+	})
 
 	// Authenticated endpoints.
 	r.Group(func(auth chi.Router) {
@@ -105,6 +116,29 @@ func (h *Handler) handleTrackOpen(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(transparentGIF)
 }
 
+// webhookTokenParam is the query parameter that carries the shared secret.
+const webhookTokenParam = "token"
+
+// requireWebhookSecret rejects a webhook request that does not carry the
+// configured shared secret in the token query parameter. It answers 404 so
+// the route stays indistinguishable from an unknown path, and it rejects
+// every request while the secret is empty.
+//
+// The token travels in the query string, not in the body, because the
+// sanitize middleware rewrites the body before the handler reads it. A
+// body-based signature would cover bytes the provider never signed.
+func (h *Handler) requireWebhookSecret(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get(webhookTokenParam)
+		if h.webhookSecret == "" || token == "" ||
+			subtle.ConstantTimeCompare([]byte(token), []byte(h.webhookSecret)) != 1 {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // maxWebhookBody caps inbound webhook payload size to defend against abuse.
 const maxWebhookBody = 1 << 20 // 1 MiB
 
@@ -122,10 +156,9 @@ type sendGridEvent struct {
 // events). It records each delivery event and suppresses addresses on hard
 // bounces and spam complaints.
 //
-// TODO: verify the SendGrid "Signed Event Webhook" signature
-// (X-Twilio-Email-Event-Webhook-Signature / -Timestamp) once the verification
-// public key is plumbed through config. Until then this endpoint trusts the
-// payload; deploy it behind a hard-to-guess path or a reverse-proxy allowlist.
+// requireWebhookSecret gates this route with the shared secret. The payload
+// itself is not authenticated, so a caller that knows the secret can post any
+// event.
 func (h *Handler) handleSendGridWebhook(w http.ResponseWriter, r *http.Request) {
 	var events []sendGridEvent
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxWebhookBody)).Decode(&events); err != nil {
@@ -216,9 +249,9 @@ type sesEvent struct {
 // SNS. It records the delivery event and suppresses recipients on permanent
 // bounces and complaints.
 //
-// TODO: verify the SNS message signature (SigningCertURL / Signature) and
-// handle SubscriptionConfirmation messages once SNS is configured. Until then
-// this endpoint trusts the payload; deploy behind an allowlist.
+// requireWebhookSecret gates this route with the shared secret. The handler
+// does not verify the SNS signature and it ignores SubscriptionConfirmation
+// messages, so confirm the subscription by hand.
 func (h *Handler) handleSESWebhook(w http.ResponseWriter, r *http.Request) {
 	var envelope snsNotification
 	if err := json.NewDecoder(io.LimitReader(r.Body, maxWebhookBody)).Decode(&envelope); err != nil {

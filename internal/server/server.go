@@ -256,7 +256,13 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 	// Wire up notification tracking layer.
 	trackingService := notification.NewTrackingService(db, logger)
-	notifHandler := notification.NewHandler(trackingService, notifService, suppressionService, authMiddleware, notification.OrganizerFromCtx(organizerFromCtx), notification.EventOwnershipChecker(checkEventOwner), logger)
+	notifHandler := notification.NewHandler(trackingService, notifService, suppressionService, cfg.WebhookSecret, authMiddleware, notification.OrganizerFromCtx(organizerFromCtx), notification.EventOwnershipChecker(checkEventOwner), logger)
+
+	// Warn the operator whose email provider posts delivery events. Without
+	// WEBHOOK_SECRET the webhook routes answer 404 for every request.
+	if cfg.WebhookSecret == "" && notifRegistry.Has(notification.ChannelEmail) {
+		logger.Warn().Msg("WEBHOOK_SECRET is not set: provider delivery webhooks are disabled")
+	}
 
 	// Wire email sending into auth service (breaks circular dep via function).
 	if notifRegistry.Has(notification.ChannelEmail) {

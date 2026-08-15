@@ -133,6 +133,7 @@ All configuration is via environment variables. See [`.env.example`](.env.exampl
 | `FEEDBACK_GITHUB_REPO` | _(empty)_ | Target repo for Issues, e.g. `owner/repo` |
 | `FEEDBACK_EMAIL` | _(empty)_ | Email address to receive feedback (fallback) |
 | `TRUSTED_PROXIES` | _(empty)_ | Comma-separated CIDR ranges of trusted reverse proxies (e.g. `10.0.0.0/8,172.16.0.0/12`). When set, `X-Forwarded-For` / `X-Real-IP` headers are trusted to determine client IP. When empty (default), only `RemoteAddr` is used, which prevents IP spoofing. **Set this when running behind a reverse proxy (Nginx, Caddy, etc.)** |
+| `WEBHOOK_SECRET` | _(empty)_ | Shared secret for the SendGrid and SES delivery webhooks, 32 characters or more (`openssl rand -hex 32`). Give the provider the webhook URL with `?token=<secret>` appended. While this value is empty, the webhook routes answer `404` for every request. **The token travels in the URL, so reverse-proxy access logs record it. Rotate the secret if you share those logs.** |
 | `MAX_COHOSTS_PER_EVENT` | `10` | Maximum number of co-hosts allowed per event |
 | `ADMIN_EMAILS` | _(empty)_ | Comma-separated list of instance admin emails (e.g. `admin@example.com,ops@example.com`). Admin status is synced on every page load — add or remove emails and changes take effect immediately without requiring re-login |
 
@@ -447,6 +448,11 @@ If you deployed `docker-compose.postgres.yml` **before v1.5.1**, rotate your Pos
 | Deployment | Docker (multi-stage, single binary) |
 
 ## 📝 Changelog
+
+### v1.8.2 (2026-08-14)
+
+**Security:**
+- The SendGrid and SES delivery webhooks accepted any request. Anyone who knew the URL could post a fake bounce or spam complaint and suppress an address, which silently dropped every reminder, RSVP confirmation and organizer message to that person. Both routes now require the `WEBHOOK_SECRET` shared secret as a `?token=` query parameter, compared in constant time, and they answer `404` when the secret is unset, missing or wrong
 
 ### v1.8.1 (2026-07-26)
 
