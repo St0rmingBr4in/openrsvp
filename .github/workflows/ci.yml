@@ -117,9 +117,9 @@ jobs:
     # (net/http), GO-2026-6088 (encoding/xml), GO-2026-5972 (encoding/asn1) and
     # GO-2026-5026 (x/net/idna). GOTOOLCHAIN=local pins the analysis to the
     # installed version so the scan reflects 1.26.6.
-    # Keep this current as new stdlib advisories land: the Dockerfile builds on the
-    # floating golang:1.26-alpine, so a stale pin here fails the gate on a
-    # vulnerability the shipped binary does not actually carry.
+    # Keep this current as new stdlib advisories land, and keep it in step with
+    # the pinned base image in the Dockerfile. Both must name the same patch
+    # version, so that this gate scans what the released binary is built with.
     env:
       GOTOOLCHAIN: local
     steps:
