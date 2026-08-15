@@ -452,7 +452,15 @@ If you deployed `docker-compose.postgres.yml` **before v1.5.1**, rotate your Pos
 ### v1.8.2 (2026-08-14)
 
 **Security:**
-- The SendGrid and SES delivery webhooks accepted any request. Anyone who knew the URL could post a fake bounce or spam complaint and suppress an address, which silently dropped every reminder, RSVP confirmation and organizer message to that person. Both routes now require the `WEBHOOK_SECRET` shared secret as a `?token=` query parameter, compared in constant time, and they answer `404` when the secret is unset, missing or wrong
+- The SendGrid and SES delivery webhooks accepted any request. A person who knew the URL could post a fake bounce or spam complaint. That suppressed the address and dropped every reminder, RSVP confirmation and organizer message to that person. The routes now need the `WEBHOOK_SECRET` value as a `?token=` query parameter, compared in constant time. They answer `404` while the secret is unset, missing or wrong. Set `WEBHOOK_SECRET` to keep your delivery webhooks working
+- `TRUSTED_PROXIES` was never compared against the address of the caller. Its presence alone made the server trust the `X-Forwarded-For` header from any client. A client could send a new value on each request and get a new rate limit bucket each time. That defeated the 10/min limit on magic links and the 30/min limit on RSVPs. The server now reads forwarded headers only from an address inside a trusted range. A malformed `TRUSTED_PROXIES` value stops startup instead of turning the protection off without a signal
+- The rate limiter had no limit on the number of addresses it tracked. One client can present a new address on each request, so the map grew without a bound. The limiter now holds a fixed maximum and removes one random entry to make room. It never refuses a request because the map is full
+- `SanitizeStrict` decoded HTML entities after it stripped tags, so `&lt;script&gt;` became a live `<script>` tag in storage. No page rendered that value as raw HTML, so this was a defense that did not work rather than a live fault. The sanitizer now repeats until the value stops changing. Plain text such as `a < b` keeps its characters
+- `.env.example` shipped `ENV=development`. That flag writes the magic link token to the log, removes the `Secure` flag from the session cookie, and lets webhooks reach private addresses. Magic link is the only way to sign in, so read access to the log gave account access. The example file now ships `ENV=production`. The docker compose stack sets `ENV=development` for itself
+- The `govulncheck` job used go1.26.5, which carries seven advisories in the standard library. Two of them sit on ordinary request paths. The job now uses go1.26.6 and reports no findings
+
+**Fixes:**
+- `docker-compose.yml` pointed `SMTP_HOST` at a `mailpit` service that no compose file defined. Every magic link send failed, so nobody could sign in to the stack. The API still answered with the generic message, so only the container log showed the fault. The compose file now defines the service. Its web UI listens on `127.0.0.1:8025` and its SMTP port stays on the compose network
 
 ### v1.8.1 (2026-07-26)
 
