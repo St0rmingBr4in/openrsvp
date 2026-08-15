@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -62,6 +63,13 @@ type Config struct {
 
 	// Security
 	TrustedProxies []string // CIDR ranges of trusted reverse proxies
+	// TrustedProxyPrefixes holds the parsed form of TrustedProxies. Load
+	// rejects a malformed entry, so this field agrees with TrustedProxies.
+	TrustedProxyPrefixes []netip.Prefix
+	// WebhookSecret authenticates the email provider webhooks. The routes
+	// answer 404 while this value is empty, so an instance that does not set
+	// it cannot be reached.
+	WebhookSecret string
 
 	// Limits
 	MaxCoHostsPerEvent int
@@ -131,15 +139,33 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid DEFAULT_RETENTION_DAYS: %d (must be greater than 0)", retentionDays)
 	}
 
-	// Parse TRUSTED_PROXIES (comma-separated CIDR ranges or IPs).
+	// Parse TRUSTED_PROXIES (comma-separated CIDR ranges or IPs). A malformed
+	// entry stops startup. It used to be accepted and then ignored, which let
+	// a typo silently turn off the protection it was written to enable.
 	var trustedProxies []string
+	var trustedProxyPrefixes []netip.Prefix
 	if raw := getEnv("TRUSTED_PROXIES", ""); raw != "" {
 		for _, entry := range strings.Split(raw, ",") {
 			entry = strings.TrimSpace(entry)
-			if entry != "" {
-				trustedProxies = append(trustedProxies, entry)
+			if entry == "" {
+				continue
 			}
+			prefix, err := parseProxyPrefix(entry)
+			if err != nil {
+				return nil, fmt.Errorf("invalid TRUSTED_PROXIES entry %q: %w", entry, err)
+			}
+			trustedProxies = append(trustedProxies, entry)
+			trustedProxyPrefixes = append(trustedProxyPrefixes, prefix)
 		}
+	}
+
+	// WEBHOOK_SECRET authenticates the provider webhook routes. A short value
+	// is worse than none, because it looks like protection. Require 32
+	// characters, which is the length of the token the README tells the
+	// operator to generate.
+	webhookSecret := getEnv("WEBHOOK_SECRET", "")
+	if webhookSecret != "" && len(webhookSecret) < minWebhookSecretLen {
+		return nil, fmt.Errorf("invalid WEBHOOK_SECRET: must be at least %d characters", minWebhookSecretLen)
 	}
 
 	maxCoHosts, err := strconv.Atoi(getEnv("MAX_COHOSTS_PER_EVENT", "10"))
@@ -192,7 +218,9 @@ func Load() (*Config, error) {
 
 		DefaultRetentionDays: retentionDays,
 
-		TrustedProxies: trustedProxies,
+		TrustedProxies:       trustedProxies,
+		TrustedProxyPrefixes: trustedProxyPrefixes,
+		WebhookSecret:        webhookSecret,
 
 		MaxCoHostsPerEvent: maxCoHosts,
 
@@ -256,6 +284,26 @@ func (c *Config) ApplyInstanceOverrides(overrides map[string]string) {
 }
 
 // IsDevelopment returns true if the environment is development.
+// minWebhookSecretLen is the shortest WEBHOOK_SECRET that Load accepts.
+const minWebhookSecretLen = 32
+
+// parseProxyPrefix reads one TRUSTED_PROXIES entry. It accepts a CIDR range
+// and a bare address. A bare address becomes a single-address range.
+func parseProxyPrefix(entry string) (netip.Prefix, error) {
+	if strings.Contains(entry, "/") {
+		prefix, err := netip.ParsePrefix(entry)
+		if err != nil {
+			return netip.Prefix{}, err
+		}
+		return prefix.Masked(), nil
+	}
+	addr, err := netip.ParseAddr(entry)
+	if err != nil {
+		return netip.Prefix{}, err
+	}
+	return netip.PrefixFrom(addr, addr.BitLen()), nil
+}
+
 func (c *Config) IsDevelopment() bool {
 	return c.Env == "development"
 }

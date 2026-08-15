@@ -36,11 +36,12 @@ func (s *Server) routes() *chi.Mux {
 	r.Use(zerologMiddleware(s.logger))
 	r.Use(middleware.Recoverer)
 	// Only trust X-Forwarded-For / X-Real-IP when TRUSTED_PROXIES is
-	// configured.  Without it, any client can spoof their IP and bypass
-	// rate limiting.  Operators behind a reverse proxy should set
+	// configured.  The middleware also checks the peer address against
+	// those prefixes, so a direct client cannot spoof its IP and bypass
+	// rate limiting.  Operators behind a reverse proxy must set
 	// TRUSTED_PROXIES to their proxy's address(es).
-	if len(s.cfg.TrustedProxies) > 0 {
-		r.Use(middleware.RealIP)
+	if len(s.cfg.TrustedProxyPrefixes) > 0 {
+		r.Use(security.RealIPMiddleware(s.cfg.TrustedProxyPrefixes))
 	}
 	r.Use(middleware.RequestID)
 	r.Use(s.securityMw.CSRF)

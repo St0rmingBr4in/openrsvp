@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+// maxTrackedKeys is the largest number of keys the limiter holds at one
+// time. A single client can present a new key on every request, for example
+// one address out of a residential IPv6 /64, so the periodic cleanup alone
+// cannot bound memory.
+const maxTrackedKeys = 100_000
+
 // RateLimiter implements an in-memory sliding window rate limiter.
 type RateLimiter struct {
 	mu      sync.RWMutex
@@ -71,6 +77,9 @@ func (rl *RateLimiter) Allow(key string) bool {
 
 	w, exists := rl.windows[key]
 	if !exists {
+		if len(rl.windows) >= maxTrackedKeys {
+			rl.evictOne()
+		}
 		w = &window{}
 		rl.windows[key] = w
 	}
@@ -84,6 +93,19 @@ func (rl *RateLimiter) Allow(key string) bool {
 
 	w.entries = append(w.entries, now)
 	return true
+}
+
+// evictOne removes one arbitrary key to make room for a new one. Go starts a
+// map range at a pseudo-random position, so a single step picks a random
+// victim in constant time. The caller must hold the write lock.
+//
+// The limiter must never deny a request because of the key cap. A denial at
+// the cap lets one attacker lock out every other client.
+func (rl *RateLimiter) evictOne() {
+	for key := range rl.windows {
+		delete(rl.windows, key)
+		return
+	}
 }
 
 // Reset removes all tracked entries for the given key.
