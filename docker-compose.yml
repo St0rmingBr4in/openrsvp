@@ -8,6 +8,11 @@ services:
     env_file:
       - .env
     environment:
+      # This stack serves plain HTTP on localhost, so it needs the development
+      # flag. A Secure session cookie is not sent over plain HTTP, and login
+      # then fails with no visible error. .env.example ships ENV=production,
+      # and this entry overrides it for the development stack only.
+      - ENV=development
       - DB_DRIVER=sqlite
       - DB_DSN=/data/openrsvp.db
       - UPLOADS_DIR=/data/uploads
