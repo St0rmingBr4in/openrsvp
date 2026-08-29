@@ -21,12 +21,13 @@
 			return;
 		}
 
-		// Strip the raw token from the URL/history before doing anything else,
-		// so it does not linger in browser history.
-		replaceState('/auth/verify', {});
-
 		try {
 			const result = await api.post<{ token: string; organizer: Organizer }>('/auth/verify', { token });
+			// Strip the raw token from the URL/history after use, so it does not
+			// linger in browser history. This must run after the first await so
+			// the SvelteKit client router is initialised; calling replaceState
+			// synchronously in onMount throws and aborts verification (issue #5).
+			replaceState('/auth/verify', {});
 			$currentUser = result.organizer;
 			toast.success('Successfully signed in!');
 			goto('/events');
