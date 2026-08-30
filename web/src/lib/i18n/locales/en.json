@@ -13,6 +13,35 @@
 		"switchToDark": "Switch to dark mode",
 		"toggleMenu": "Toggle menu"
 	},
+	"logout": {
+		"pageTitle": "Signing out -- OpenRSVP",
+		"signingOut": "Signing you out..."
+	},
+	"errorPage": {
+		"notFoundTitle": "This invite got lost in the mail",
+		"notFoundBody": "The page you're looking for doesn't exist or may have been moved. Let's get you back on track.",
+		"genericTitle": "Something went wrong",
+		"genericBody": "An unexpected error occurred. Please try again.",
+		"backHome": "Back to Home",
+		"myEvents": "My Events"
+	},
+	"calendar": {
+		"addToCalendar": "Add to Calendar",
+		"options": "Calendar options",
+		"google": "Google Calendar",
+		"apple": "Apple Calendar (.ics)",
+		"outlook": "Outlook (.ics)"
+	},
+	"question": {
+		"yourAnswer": "Your answer"
+	},
+	"modal": {
+		"close": "Close",
+		"closeModal": "Close modal"
+	},
+	"toast": {
+		"dismiss": "Dismiss"
+	},
 	"status": {
 		"attending": "Attending",
 		"maybe": "Maybe",
@@ -77,6 +106,72 @@
 		"organizer": "Organizer",
 		"noMessages": "No messages yet.",
 		"poweredBy": "Powered by OpenRSVP"
+	},
+	"eventStatus": {
+		"draft": "draft",
+		"published": "published",
+		"cancelled": "cancelled",
+		"archived": "archived"
+	},
+	"feedback": {
+		"reportProblem": "Report a problem",
+		"title": "Send Feedback",
+		"thankYou": "Thank you!",
+		"sent": "Your feedback has been sent.",
+		"close": "Close",
+		"intro": "Noticed something off? Let us know and we'll take a look.",
+		"messageLabel": "Message",
+		"messagePlaceholder": "Describe the problem or share your feedback...",
+		"emailLabel": "Email",
+		"optional": "(optional)",
+		"cancel": "Cancel",
+		"sending": "Sending...",
+		"send": "Send Feedback",
+		"enterMessage": "Please enter a message.",
+		"sendFailed": "Failed to send feedback. Please try again."
+	},
+	"unsubscribe": {
+		"pageTitle": "Unsubscribe — OpenRSVP",
+		"checking": "Checking your unsubscribe link…",
+		"invalidHeading": "Invalid unsubscribe link",
+		"invalidLink": "This unsubscribe link is invalid or incomplete.",
+		"invalidExpired": "This unsubscribe link is invalid or has expired.",
+		"loadFailed": "We could not load this unsubscribe link. Please try again later.",
+		"scopeEvent": "this event's emails",
+		"scopeAll": "all OpenRSVP emails",
+		"confirmHeading": "Unsubscribe from emails?",
+		"confirmPre": "Unsubscribe ",
+		"confirmMid": " from ",
+		"confirmSuffix": "?",
+		"noFurther": "You won't receive any further emails to this address.",
+		"unsubscribing": "Unsubscribing…",
+		"unsubscribe": "Unsubscribe",
+		"changedMind": "Changed your mind later? You can re-subscribe by RSVPing again or contacting the event organizer.",
+		"successHeading": "You've been unsubscribed",
+		"successMid": " will no longer receive ",
+		"successSuffix": ".",
+		"successNoEmail": "You will no longer receive these emails.",
+		"reSubscribe": "You can re-subscribe at any time by RSVPing again or contacting the event organizer.",
+		"errorHeading": "Something went wrong",
+		"tryingAgain": "Trying again…",
+		"tryAgain": "Try again",
+		"completeFailed": "We could not complete your request. Please try again.",
+		"poweredBy": "Powered by OpenRSVP"
+	},
+	"events": {
+		"pageTitle": "My Events -- OpenRSVP",
+		"myEvents": "My Events",
+		"series": "Series",
+		"createEvent": "Create Event",
+		"loadFailed": "Failed to load events",
+		"noEventsHeading": "No events yet",
+		"noEventsBody": "Get started by creating your first event.",
+		"createFirst": "Create Your First Event",
+		"seriesBadge": "Series",
+		"cohostBadge": "Co-host",
+		"daysAway": "{count} days away",
+		"today": "Today",
+		"daysAgo": "{count} days ago"
 	},
 	"auth": {
 		"login": {

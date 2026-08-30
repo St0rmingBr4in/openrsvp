@@ -13,6 +13,35 @@
 		"switchToDark": "Passer en mode sombre",
 		"toggleMenu": "Afficher/masquer le menu"
 	},
+	"logout": {
+		"pageTitle": "Déconnexion -- OpenRSVP",
+		"signingOut": "Déconnexion en cours..."
+	},
+	"errorPage": {
+		"notFoundTitle": "Cette invitation s'est perdue en chemin",
+		"notFoundBody": "La page que vous cherchez n'existe pas ou a été déplacée. Remettons-vous sur la bonne voie.",
+		"genericTitle": "Une erreur est survenue",
+		"genericBody": "Une erreur inattendue s'est produite. Veuillez réessayer.",
+		"backHome": "Retour à l'accueil",
+		"myEvents": "Mes événements"
+	},
+	"calendar": {
+		"addToCalendar": "Ajouter au calendrier",
+		"options": "Options de calendrier",
+		"google": "Google Agenda",
+		"apple": "Apple Calendar (.ics)",
+		"outlook": "Outlook (.ics)"
+	},
+	"question": {
+		"yourAnswer": "Votre réponse"
+	},
+	"modal": {
+		"close": "Fermer",
+		"closeModal": "Fermer la fenêtre"
+	},
+	"toast": {
+		"dismiss": "Fermer"
+	},
 	"status": {
 		"attending": "Participe",
 		"maybe": "Peut-être",
@@ -77,6 +106,72 @@
 		"organizer": "Organisateur",
 		"noMessages": "Aucun message pour le moment.",
 		"poweredBy": "Propulsé par OpenRSVP"
+	},
+	"eventStatus": {
+		"draft": "brouillon",
+		"published": "publié",
+		"cancelled": "annulé",
+		"archived": "archivé"
+	},
+	"feedback": {
+		"reportProblem": "Signaler un problème",
+		"title": "Envoyer un retour",
+		"thankYou": "Merci !",
+		"sent": "Votre retour a bien été envoyé.",
+		"close": "Fermer",
+		"intro": "Vous avez remarqué un souci ? Dites-le-nous et nous y jetterons un œil.",
+		"messageLabel": "Message",
+		"messagePlaceholder": "Décrivez le problème ou partagez votre retour...",
+		"emailLabel": "E-mail",
+		"optional": "(facultatif)",
+		"cancel": "Annuler",
+		"sending": "Envoi...",
+		"send": "Envoyer le retour",
+		"enterMessage": "Veuillez saisir un message.",
+		"sendFailed": "Échec de l'envoi du retour. Veuillez réessayer."
+	},
+	"unsubscribe": {
+		"pageTitle": "Se désabonner — OpenRSVP",
+		"checking": "Vérification de votre lien de désabonnement…",
+		"invalidHeading": "Lien de désabonnement invalide",
+		"invalidLink": "Ce lien de désabonnement est invalide ou incomplet.",
+		"invalidExpired": "Ce lien de désabonnement est invalide ou a expiré.",
+		"loadFailed": "Impossible de charger ce lien de désabonnement. Veuillez réessayer plus tard.",
+		"scopeEvent": "les e-mails de cet événement",
+		"scopeAll": "tous les e-mails OpenRSVP",
+		"confirmHeading": "Se désabonner des e-mails ?",
+		"confirmPre": "Désabonner ",
+		"confirmMid": " de ",
+		"confirmSuffix": " ?",
+		"noFurther": "Vous ne recevrez plus aucun e-mail à cette adresse.",
+		"unsubscribing": "Désabonnement…",
+		"unsubscribe": "Se désabonner",
+		"changedMind": "Vous changez d'avis plus tard ? Vous pouvez vous réabonner en répondant à nouveau ou en contactant l'organisateur.",
+		"successHeading": "Vous êtes désabonné",
+		"successMid": " ne recevra plus ",
+		"successSuffix": ".",
+		"successNoEmail": "Vous ne recevrez plus ces e-mails.",
+		"reSubscribe": "Vous pouvez vous réabonner à tout moment en répondant à nouveau ou en contactant l'organisateur.",
+		"errorHeading": "Une erreur est survenue",
+		"tryingAgain": "Nouvelle tentative…",
+		"tryAgain": "Réessayer",
+		"completeFailed": "Impossible de traiter votre demande. Veuillez réessayer.",
+		"poweredBy": "Propulsé par OpenRSVP"
+	},
+	"events": {
+		"pageTitle": "Mes événements -- OpenRSVP",
+		"myEvents": "Mes événements",
+		"series": "Séries",
+		"createEvent": "Créer un événement",
+		"loadFailed": "Échec du chargement des événements",
+		"noEventsHeading": "Aucun événement pour le moment",
+		"noEventsBody": "Commencez par créer votre premier événement.",
+		"createFirst": "Créer votre premier événement",
+		"seriesBadge": "Série",
+		"cohostBadge": "Co-organisateur",
+		"daysAway": "dans {count} jours",
+		"today": "Aujourd'hui",
+		"daysAgo": "il y a {count} jours"
 	},
 	"auth": {
 		"login": {

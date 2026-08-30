@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { api } from '$lib/api/client';
 	import { toast } from '$lib/stores/toast';
 	import { currentUser } from '$lib/stores/auth';
@@ -19,7 +20,7 @@
 			$events = result.data;
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || 'Failed to load events');
+			toast.error(apiErr.message || $_('events.loadFailed'));
 		} finally {
 			$eventsLoading = false;
 		}
@@ -37,15 +38,15 @@
 </script>
 
 <svelte:head>
-	<title>My Events -- OpenRSVP</title>
+	<title>{$_('events.pageTitle')}</title>
 </svelte:head>
 
 <AppShell>
 	<div class="flex items-center justify-between mb-8">
-		<h1 class="text-2xl font-bold font-display text-neutral-900">My Events</h1>
+		<h1 class="text-2xl font-bold font-display text-neutral-900">{$_('events.myEvents')}</h1>
 		<div class="flex items-center gap-3">
-			<Button variant="outline" href="/events/series">Series</Button>
-			<Button href="/events/new">Create Event</Button>
+			<Button variant="outline" href="/events/series">{$_('events.series')}</Button>
+			<Button href="/events/new">{$_('events.createEvent')}</Button>
 		</div>
 	</div>
 
@@ -70,10 +71,10 @@
 						d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
 					/>
 				</svg>
-				<h3 class="mt-4 text-lg font-medium font-display text-neutral-900">No events yet</h3>
-				<p class="mt-2 text-sm text-neutral-500">Get started by creating your first event.</p>
+				<h3 class="mt-4 text-lg font-medium font-display text-neutral-900">{$_('events.noEventsHeading')}</h3>
+				<p class="mt-2 text-sm text-neutral-500">{$_('events.noEventsBody')}</p>
 				<div class="mt-6">
-					<Button href="/events/new">Create Your First Event</Button>
+					<Button href="/events/new">{$_('events.createFirst')}</Button>
 				</div>
 			</div>
 		</Card>
@@ -118,24 +119,24 @@
 							</div>
 							<div class="flex items-center gap-2">
 								{#if event.seriesId}
-									<span class="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-xs font-medium text-primary">Series</span>
+									<span class="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-xs font-medium text-primary">{$_('events.seriesBadge')}</span>
 								{/if}
 								{#if event.organizerId !== $currentUser?.id}
-									<span class="inline-flex items-center rounded-full bg-info-light px-2 py-0.5 text-xs font-medium text-info">Co-host</span>
+									<span class="inline-flex items-center rounded-full bg-info-light px-2 py-0.5 text-xs font-medium text-info">{$_('events.cohostBadge')}</span>
 								{/if}
 								<Badge variant={statusVariant(event.status)}>
-									{event.status}
+									{$_('eventStatus.' + event.status)}
 								</Badge>
 							</div>
 						</div>
 						<div class="mt-4 flex items-center justify-between text-xs text-neutral-500">
 							<span>
 								{#if daysUntil(event.eventDate) > 0}
-									{daysUntil(event.eventDate)} days away
+									{$_('events.daysAway', { values: { count: daysUntil(event.eventDate) } })}
 								{:else if daysUntil(event.eventDate) === 0}
-									Today
+									{$_('events.today')}
 								{:else}
-									{Math.abs(daysUntil(event.eventDate))} days ago
+									{$_('events.daysAgo', { values: { count: Math.abs(daysUntil(event.eventDate)) } })}
 								{/if}
 							</span>
 							<span class="font-mono text-neutral-400">{event.shareToken}</span>

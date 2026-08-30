@@ -1,3 +1,5 @@
+import { localeTag } from '$lib/i18n';
+
 export function formatDate(date: string, timezone?: string): string {
 	const opts: Intl.DateTimeFormatOptions = {
 		weekday: 'long',
@@ -6,21 +8,24 @@ export function formatDate(date: string, timezone?: string): string {
 		day: 'numeric'
 	};
 	if (timezone) opts.timeZone = timezone;
-	return new Date(date).toLocaleDateString('en-US', opts);
+	return new Date(date).toLocaleDateString(localeTag(), opts);
 }
 
 export function formatTime(date: string, timezone?: string): string {
+	const tag = localeTag();
 	const opts: Intl.DateTimeFormatOptions = {
 		hour: 'numeric',
 		minute: '2-digit',
-		hour12: true
+		// French uses 24-hour time; English keeps 12-hour AM/PM.
+		hour12: !tag.startsWith('fr')
 	};
 	if (timezone) opts.timeZone = timezone;
-	return new Date(date).toLocaleTimeString('en-US', opts);
+	return new Date(date).toLocaleTimeString(tag, opts);
 }
 
 export function formatDateTime(date: string, timezone?: string): string {
-	return `${formatDate(date, timezone)} at ${formatTime(date, timezone)}`;
+	const sep = localeTag().startsWith('fr') ? ' à ' : ' at ';
+	return `${formatDate(date, timezone)}${sep}${formatTime(date, timezone)}`;
 }
 
 export function isInFuture(date: string): boolean {
