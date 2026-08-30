@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
 	import { api } from '$lib/api/client';
 	import { toast } from '$lib/stores/toast';
 	import type { Webhook, WebhookWithSecret, WebhookDelivery, ApiError } from '$lib/types';
@@ -70,7 +71,7 @@
 			webhooks = result.data;
 		} catch (err) {
 			const apiErr = err as ApiError;
-			toast.error(apiErr.message || 'Failed to load webhooks');
+			toast.error(apiErr.message || $_('wh.loadFailed'));
 		} finally {
 			loading = false;
 		}
@@ -85,11 +86,11 @@
 
 	async function createWebhook() {
 		if (!newUrl.trim()) {
-			toast.error('URL is required');
+			toast.error($_('wh.urlRequired'));
 			return;
 		}
 		if (newEventTypes.length === 0) {
-			toast.error('Select at least one event type');
+			toast.error($_('wh.selectEventType'));
 			return;
 		}
 
@@ -107,10 +108,10 @@
 			newUrl = '';
 			newDescription = '';
 			newEventTypes = [...EVENT_TYPES];
-			toast.success('Webhook created');
+			toast.success($_('wh.created'));
 		} catch (err) {
 			const apiErr = err as ApiError;
-			toast.error(apiErr.message || 'Failed to create webhook');
+			toast.error(apiErr.message || $_('wh.createFailed'));
 		} finally {
 			creating = false;
 		}
@@ -131,11 +132,11 @@
 	async function saveWebhook() {
 		if (!editingWebhook) return;
 		if (!editUrl.trim()) {
-			toast.error('URL is required');
+			toast.error($_('wh.urlRequired'));
 			return;
 		}
 		if (editEventTypes.length === 0) {
-			toast.error('Select at least one event type');
+			toast.error($_('wh.selectEventType'));
 			return;
 		}
 
@@ -149,10 +150,10 @@
 			});
 			webhooks = webhooks.map(w => w.id === editingWebhook!.id ? result.data : w);
 			editingWebhook = null;
-			toast.success('Webhook updated');
+			toast.success($_('wh.updated'));
 		} catch (err) {
 			const apiErr = err as ApiError;
-			toast.error(apiErr.message || 'Failed to update webhook');
+			toast.error(apiErr.message || $_('wh.updateFailed'));
 		} finally {
 			saving = false;
 		}
@@ -164,10 +165,10 @@
 			webhooks = webhooks.filter(w => w.id !== webhookId);
 			deleteTarget = null;
 			showDeleteModal = false;
-			toast.success('Webhook deleted');
+			toast.success($_('wh.deleted'));
 		} catch (err) {
 			const apiErr = err as ApiError;
-			toast.error(apiErr.message || 'Failed to delete webhook');
+			toast.error(apiErr.message || $_('wh.deleteFailed'));
 		}
 	}
 
@@ -184,10 +185,10 @@
 			showRotateModal = false;
 			rotateTarget = null;
 			showSecretModal = true;
-			toast.success('Secret rotated');
+			toast.success($_('wh.secretRotated'));
 		} catch (err) {
 			const apiErr = err as ApiError;
-			toast.error(apiErr.message || 'Failed to rotate secret');
+			toast.error(apiErr.message || $_('wh.rotateFailed'));
 		} finally {
 			rotating = false;
 		}
@@ -197,10 +198,10 @@
 		testingWebhookId = webhookId;
 		try {
 			await api.post(`/webhooks/${webhookId}/test`);
-			toast.success('Test delivery sent');
+			toast.success($_('wh.testSent'));
 		} catch (err) {
 			const apiErr = err as ApiError;
-			toast.error(apiErr.message || 'Failed to send test');
+			toast.error(apiErr.message || $_('wh.testFailed'));
 		} finally {
 			testingWebhookId = '';
 		}
@@ -230,7 +231,7 @@
 			secretCopied = true;
 			setTimeout(() => (secretCopied = false), 2000);
 		} catch {
-			toast.error('Failed to copy');
+			toast.error($_('wh.copyFailed'));
 		}
 	}
 
@@ -243,20 +244,20 @@
 </script>
 
 <svelte:head>
-	<title>Webhooks — OpenRSVP</title>
+	<title>{$_('wh.pageTitle')}</title>
 </svelte:head>
 
 <AppShell>
 	<div class="mb-6 flex items-center justify-between">
-		<a href="/events/{eventId}" class="text-sm text-primary hover:text-primary-hover">&larr; Back to event</a>
+		<a href="/events/{eventId}" class="text-sm text-primary hover:text-primary-hover">{$_('wh.backToEvent')}</a>
 	</div>
 
 	<Card>
 		{#snippet header()}
 			<div class="flex items-center justify-between">
-				<h1 class="text-xl font-bold font-display text-neutral-900">Webhooks</h1>
+				<h1 class="text-xl font-bold font-display text-neutral-900">{$_('wh.title')}</h1>
 				{#if !showCreateForm}
-					<Button size="sm" onclick={() => (showCreateForm = true)}>Add Webhook</Button>
+					<Button size="sm" onclick={() => (showCreateForm = true)}>{$_('wh.addWebhook')}</Button>
 				{/if}
 			</div>
 		{/snippet}
@@ -269,23 +270,23 @@
 			<!-- Create Form -->
 			{#if showCreateForm}
 				<div class="border border-neutral-200 rounded-lg p-4 mb-6 space-y-4 bg-neutral-50">
-					<h3 class="text-sm font-semibold text-neutral-900">New Webhook</h3>
+					<h3 class="text-sm font-semibold text-neutral-900">{$_('wh.newWebhook')}</h3>
 					<Input
 						name="webhookUrl"
 						type="url"
-						label="Endpoint URL"
+						label={$_('wh.endpointUrl')}
 						bind:value={newUrl}
 						placeholder="https://example.com/webhook"
 						required
 					/>
 					<Input
 						name="webhookDescription"
-						label="Description (optional)"
+						label={$_('wh.descriptionOptional')}
 						bind:value={newDescription}
-						placeholder="What this webhook is for"
+						placeholder={$_('wh.descPlaceholder')}
 					/>
 					<fieldset>
-						<legend class="block text-sm font-medium text-neutral-700 mb-2">Event Types</legend>
+						<legend class="block text-sm font-medium text-neutral-700 mb-2">{$_('wh.eventTypes')}</legend>
 						<div class="flex flex-wrap gap-2">
 							{#each EVENT_TYPES as eventType}
 								<label class="flex items-center gap-1.5 cursor-pointer">
@@ -301,8 +302,8 @@
 						</div>
 					</fieldset>
 					<div class="flex items-center justify-end gap-2">
-						<Button variant="outline" size="sm" onclick={() => (showCreateForm = false)}>Cancel</Button>
-						<Button size="sm" onclick={createWebhook} loading={creating}>Create Webhook</Button>
+						<Button variant="outline" size="sm" onclick={() => (showCreateForm = false)}>{$_('wh.cancel')}</Button>
+						<Button size="sm" onclick={createWebhook} loading={creating}>{$_('wh.createWebhook')}</Button>
 					</div>
 				</div>
 			{/if}
@@ -310,7 +311,7 @@
 			<!-- Webhook List -->
 			{#if webhooks.length === 0 && !showCreateForm}
 				<p class="text-sm text-neutral-500 text-center py-8">
-					No webhooks configured. Add one to receive real-time notifications about event activity.
+					{$_('wh.noWebhooks')}
 				</p>
 			{:else}
 				<div class="space-y-4">
@@ -318,23 +319,23 @@
 						{#if editingWebhook?.id === webhook.id}
 							<!-- Edit Form -->
 							<div class="border border-primary-light rounded-lg p-4 space-y-4 bg-primary-lighter/30">
-								<h3 class="text-sm font-semibold text-neutral-900">Edit Webhook</h3>
+								<h3 class="text-sm font-semibold text-neutral-900">{$_('wh.editWebhook')}</h3>
 								<Input
 									name="editWebhookUrl"
 									type="url"
-									label="Endpoint URL"
+									label={$_('wh.endpointUrl')}
 									bind:value={editUrl}
 									placeholder="https://example.com/webhook"
 									required
 								/>
 								<Input
 									name="editWebhookDescription"
-									label="Description (optional)"
+									label={$_('wh.descriptionOptional')}
 									bind:value={editDescription}
-									placeholder="What this webhook is for"
+									placeholder={$_('wh.descPlaceholder')}
 								/>
 								<fieldset>
-									<legend class="block text-sm font-medium text-neutral-700 mb-2">Event Types</legend>
+									<legend class="block text-sm font-medium text-neutral-700 mb-2">{$_('wh.eventTypes')}</legend>
 									<div class="flex flex-wrap gap-2">
 										{#each EVENT_TYPES as eventType}
 											<label class="flex items-center gap-1.5 cursor-pointer">
@@ -355,11 +356,11 @@
 										bind:checked={editEnabled}
 										class="rounded border-neutral-300 text-primary focus:ring-primary/40"
 									/>
-									<span class="text-sm text-neutral-700">Enabled</span>
+									<span class="text-sm text-neutral-700">{$_('wh.enabled')}</span>
 								</label>
 								<div class="flex items-center justify-end gap-2">
-									<Button variant="outline" size="sm" onclick={cancelEdit}>Cancel</Button>
-									<Button size="sm" onclick={saveWebhook} loading={saving}>Save</Button>
+									<Button variant="outline" size="sm" onclick={cancelEdit}>{$_('wh.cancel')}</Button>
+									<Button size="sm" onclick={saveWebhook} loading={saving}>{$_('wh.save')}</Button>
 								</div>
 							</div>
 						{:else}
@@ -370,7 +371,7 @@
 										<div class="flex items-center gap-2 mb-1">
 											<code class="text-sm font-medium text-neutral-900 truncate block max-w-md">{webhook.url}</code>
 											<Badge variant={webhook.enabled ? 'success' : 'neutral'}>
-												{webhook.enabled ? 'Active' : 'Disabled'}
+												{webhook.enabled ? $_('wh.active') : $_('wh.disabled')}
 											</Badge>
 										</div>
 										{#if webhook.description}
@@ -383,10 +384,10 @@
 										</div>
 									</div>
 									<div class="flex items-center gap-1 ml-4">
-										<Button size="sm" variant="ghost" onclick={() => testWebhook(webhook.id)} loading={testingWebhookId === webhook.id}>Test</Button>
-										<Button size="sm" variant="ghost" onclick={() => startEdit(webhook)}>Edit</Button>
-										<Button size="sm" variant="ghost" onclick={() => confirmRotateSecret(webhook)}>Rotate Secret</Button>
-										<Button size="sm" variant="ghost" onclick={() => { deleteTarget = webhook; showDeleteModal = true; }}>Delete</Button>
+										<Button size="sm" variant="ghost" onclick={() => testWebhook(webhook.id)} loading={testingWebhookId === webhook.id}>{$_('wh.test')}</Button>
+										<Button size="sm" variant="ghost" onclick={() => startEdit(webhook)}>{$_('wh.edit')}</Button>
+										<Button size="sm" variant="ghost" onclick={() => confirmRotateSecret(webhook)}>{$_('wh.rotateSecret')}</Button>
+										<Button size="sm" variant="ghost" onclick={() => { deleteTarget = webhook; showDeleteModal = true; }}>{$_('wh.delete')}</Button>
 									</div>
 								</div>
 
@@ -397,7 +398,7 @@
 										onclick={() => toggleDeliveries(webhook.id)}
 										class="text-xs text-primary hover:text-primary-hover font-medium"
 									>
-										{expandedWebhookId === webhook.id ? 'Hide deliveries' : 'Show recent deliveries'}
+										{expandedWebhookId === webhook.id ? $_('wh.hideDeliveries') : $_('wh.showDeliveries')}
 									</button>
 
 									{#if expandedWebhookId === webhook.id}
@@ -407,7 +408,7 @@
 													<Spinner class="text-primary" />
 												</div>
 											{:else if deliveries.length === 0}
-												<p class="text-xs text-neutral-400 text-center py-4">No deliveries yet.</p>
+												<p class="text-xs text-neutral-400 text-center py-4">{$_('wh.noDeliveries')}</p>
 											{:else}
 												<div class="space-y-2 max-h-64 overflow-y-auto">
 													{#each deliveries as delivery (delivery.id)}
@@ -415,7 +416,7 @@
 															<div class="flex items-center justify-between mb-1">
 																<div class="flex items-center gap-2">
 																	<Badge variant={statusBadgeVariant(delivery.responseStatus)}>
-																		{delivery.responseStatus || 'Failed'}
+																		{delivery.responseStatus || $_('wh.failed')}
 																	</Badge>
 																	<span class="text-neutral-600">{delivery.eventType}</span>
 																</div>
@@ -440,9 +441,9 @@
 	</Card>
 
 	<!-- Secret Modal -->
-	<Modal bind:open={showSecretModal} title="Webhook Secret">
+	<Modal bind:open={showSecretModal} title={$_('wh.secretModalTitle')}>
 		<p class="text-sm text-neutral-600 mb-3">
-			Save this secret now. It will not be shown again. Use it to verify webhook signatures.
+			{$_('wh.secretDesc')}
 		</p>
 		<div class="flex items-center gap-2 bg-neutral-50 rounded-lg px-4 py-3 border border-neutral-200">
 			<code class="text-sm font-mono text-neutral-900 flex-1 break-all">{displayedSecret}</code>
@@ -450,7 +451,7 @@
 				type="button"
 				onclick={copySecret}
 				class="text-neutral-400 hover:text-primary transition-colors flex-shrink-0"
-				title="Copy secret"
+				title={$_('wh.copySecret')}
 			>
 				{#if secretCopied}
 					<svg class="h-4 w-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -464,21 +465,20 @@
 			</button>
 		</div>
 		{#snippet actions()}
-			<Button size="sm" onclick={() => (showSecretModal = false)}>Done</Button>
+			<Button size="sm" onclick={() => (showSecretModal = false)}>{$_('wh.done')}</Button>
 		{/snippet}
 	</Modal>
 
 	<!-- Rotate Secret Confirmation Modal -->
 	{#if rotateTarget}
 		{@const target = rotateTarget}
-		<Modal bind:open={showRotateModal} title="Rotate Webhook Secret">
+		<Modal bind:open={showRotateModal} title={$_('wh.rotateModalTitle')}>
 			<p class="text-sm text-neutral-600">
-				Are you sure you want to rotate the signing secret for <strong class="break-all">{target.url}</strong>?
-				The current secret will be invalidated immediately and any integrations using it will stop working.
+				{$_('wh.rotateConfirmPre')}<strong class="break-all">{target.url}</strong>{$_('wh.rotateConfirmPost')}
 			</p>
 			{#snippet actions()}
-				<Button variant="outline" size="sm" onclick={() => { showRotateModal = false; rotateTarget = null; }}>Cancel</Button>
-				<Button variant="primary" size="sm" onclick={() => rotateSecret(target.id)} loading={rotating}>Rotate Secret</Button>
+				<Button variant="outline" size="sm" onclick={() => { showRotateModal = false; rotateTarget = null; }}>{$_('wh.cancel')}</Button>
+				<Button variant="primary" size="sm" onclick={() => rotateSecret(target.id)} loading={rotating}>{$_('wh.rotateSecret')}</Button>
 			{/snippet}
 		</Modal>
 	{/if}
@@ -486,13 +486,13 @@
 	<!-- Delete Confirmation Modal -->
 	{#if deleteTarget}
 		{@const target = deleteTarget}
-		<Modal bind:open={showDeleteModal} title="Delete Webhook">
+		<Modal bind:open={showDeleteModal} title={$_('wh.deleteModalTitle')}>
 			<p class="text-sm text-neutral-600">
-				Are you sure you want to delete the webhook for <strong class="break-all">{target.url}</strong>? This action cannot be undone.
+				{$_('wh.deleteConfirmPre')}<strong class="break-all">{target.url}</strong>{$_('wh.deleteConfirmPost')}
 			</p>
 			{#snippet actions()}
-				<Button variant="outline" size="sm" onclick={() => (showDeleteModal = false)}>Cancel</Button>
-				<Button variant="danger" size="sm" onclick={() => deleteWebhook(target.id)}>Delete</Button>
+				<Button variant="outline" size="sm" onclick={() => (showDeleteModal = false)}>{$_('wh.cancel')}</Button>
+				<Button variant="danger" size="sm" onclick={() => deleteWebhook(target.id)}>{$_('wh.delete')}</Button>
 			{/snippet}
 		</Modal>
 	{/if}
