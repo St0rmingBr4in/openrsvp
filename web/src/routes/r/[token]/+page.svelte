@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
+	import { localeTag } from '$lib/i18n';
 	import { api } from '$lib/api/client';
 	import type { PublicEvent, Attendee, Message, PublicAttendance, EventQuestion, QuestionAnswer, ApiError } from '$lib/types';
 	import QuestionRenderer from '$lib/components/questions/QuestionRenderer.svelte';
@@ -91,9 +93,9 @@
 		} catch (err) {
 			const apiErr = err as ApiError;
 			if (apiErr.status === 404) {
-				error = 'This RSVP could not be found. The link may be invalid or expired.';
+				error = $_('rsvp.notFound');
 			} else {
-				error = apiErr.message || 'Failed to load your RSVP. Please try again later.';
+				error = apiErr.message || $_('rsvp.loadFailed');
 			}
 		} finally {
 			loading = false;
@@ -111,7 +113,7 @@
 	async function handleSave(e: SubmitEvent) {
 		e.preventDefault();
 		if (!editName.trim()) {
-			saveError = 'Name is required.';
+			saveError = $_('rsvp.nameRequired');
 			return;
 		}
 
@@ -144,7 +146,7 @@
 			}
 		} catch (err) {
 			const apiErr = err as ApiError;
-			saveError = apiErr.message || 'Failed to update RSVP. Please try again.';
+			saveError = apiErr.message || $_('rsvp.updateFailed');
 		} finally {
 			saving = false;
 		}
@@ -165,7 +167,7 @@
 	async function handleSendMessage(e: SubmitEvent) {
 		e.preventDefault();
 		if (!msgSubject.trim() || !msgBody.trim()) {
-			messageError = 'Please fill in both the subject and message.';
+			messageError = $_('rsvp.messageFillBoth');
 			return;
 		}
 
@@ -185,7 +187,7 @@
 			setTimeout(() => { messageSent = false; }, 4000);
 		} catch (err) {
 			const apiErr = err as ApiError;
-			messageError = apiErr.message || 'Failed to send message. Please try again.';
+			messageError = apiErr.message || $_('rsvp.sendMessageFailed');
 		} finally {
 			sendingMessage = false;
 		}
@@ -204,7 +206,7 @@
 				minute: '2-digit'
 			};
 			if (timezone) opts.timeZone = timezone;
-			return date.toLocaleDateString('en-US', opts);
+			return date.toLocaleDateString(localeTag(), opts);
 		} catch {
 			return dateStr;
 		}
@@ -214,7 +216,7 @@
 		if (!dateStr) return '';
 		try {
 			const date = new Date(dateStr);
-			return date.toLocaleDateString('en-US', {
+			return date.toLocaleDateString(localeTag(), {
 				month: 'short',
 				day: 'numeric',
 				hour: 'numeric',
@@ -235,17 +237,6 @@
 		}
 	}
 
-	function statusLabel(status: string): string {
-		switch (status) {
-			case 'attending': return "Attending";
-			case 'maybe': return 'Maybe';
-			case 'declined': return 'Declined';
-			case 'pending': return 'Pending';
-			case 'waitlisted': return 'Waitlisted';
-			default: return status;
-		}
-	}
-
 	// Waitlist: leave waitlist handler
 	let leavingWaitlist = $state(false);
 	async function leaveWaitlist() {
@@ -260,7 +251,7 @@
 			setTimeout(() => { saveSuccess = false; }, 4000);
 		} catch (err) {
 			const apiErr = err as ApiError;
-			saveError = apiErr.message || 'Failed to leave waitlist. Please try again.';
+			saveError = apiErr.message || $_('rsvp.leaveWaitlistFailed');
 		} finally {
 			leavingWaitlist = false;
 		}
@@ -268,7 +259,7 @@
 </script>
 
 <svelte:head>
-	<title>Manage Your RSVP{eventData ? ` — ${eventData.title}` : ''} — OpenRSVP</title>
+	<title>{$_('rsvp.pageTitle')}{eventData ? ` — ${eventData.title}` : ''} — OpenRSVP</title>
 </svelte:head>
 
 <div class="min-h-screen px-4 py-8 sm:py-12" style="background: linear-gradient(135deg, #FAFAF9 0%, #FFF1F3 50%, #FDE8EC 100%);">
@@ -277,7 +268,7 @@
 			<div class="flex items-center justify-center min-h-[60vh]">
 				<div class="flex flex-col items-center gap-4">
 					<div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-					<p class="text-neutral-500 text-sm">Loading your RSVP...</p>
+					<p class="text-neutral-500 text-sm">{$_('rsvp.loading')}</p>
 				</div>
 			</div>
 		{:else if error}
@@ -288,7 +279,7 @@
 							<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
 						</svg>
 					</div>
-					<h2 class="font-display text-xl font-semibold text-neutral-900 mb-2">RSVP Not Found</h2>
+					<h2 class="font-display text-xl font-semibold text-neutral-900 mb-2">{$_('rsvp.notFoundHeading')}</h2>
 					<p class="text-neutral-600">{error}</p>
 				</div>
 			</div>
@@ -314,12 +305,12 @@
 				<div class="mb-4 rounded-md bg-info-light border border-info/20 p-4 text-center">
 					<p class="text-sm font-medium text-info">
 						{#if waitlistPosition}
-							You're on the waitlist -- Position #{waitlistPosition} in line
+							{$_('rsvp.onWaitlistPosition', { values: { position: waitlistPosition } })}
 						{:else}
-							You're on the waitlist
+							{$_('rsvp.onWaitlist')}
 						{/if}
 					</p>
-					<p class="text-xs text-info/80 mt-1">We'll email you if a spot opens up.</p>
+					<p class="text-xs text-info/80 mt-1">{$_('rsvp.waitlistEmail')}</p>
 					<button
 						type="button"
 						onclick={leaveWaitlist}
@@ -327,9 +318,9 @@
 						class="mt-3 inline-flex items-center gap-1.5 rounded-md border border-info/30 bg-surface px-4 py-2 text-sm font-medium text-info hover:bg-info-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{#if leavingWaitlist}
-							Leaving...
+							{$_('rsvp.leaving')}
 						{:else}
-							Leave Waitlist
+							{$_('rsvp.leaveWaitlist')}
 						{/if}
 					</button>
 				</div>
@@ -338,14 +329,14 @@
 			<!-- Capacity Notice -->
 			{#if eventData.atCapacity && attendee.rsvpStatus !== 'attending' && attendee.rsvpStatus !== 'waitlisted'}
 				<div class="mb-4 rounded-md bg-error-light border border-error/20 px-4 py-3 text-sm text-error text-center">
-					This event is at capacity. You can still RSVP as "maybe" or "declined".
+					{$_('rsvp.atCapacity')}
 				</div>
 			{/if}
 
 			<!-- RSVP Closed Notice -->
 			{#if rsvpsClosed}
 				<div class="mb-4 rounded-md bg-warning-light border border-warning/20 px-4 py-3 text-sm text-warning text-center">
-					This RSVP can no longer be modified. The RSVP deadline has passed.
+					{$_('rsvp.closed')}
 				</div>
 			{/if}
 
@@ -355,14 +346,14 @@
 					<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 					</svg>
-					Your RSVP has been updated successfully.
+					{$_('rsvp.updateSuccess')}
 				</div>
 			{/if}
 
 			<!-- RSVP Details Card -->
 			<div class="bg-surface rounded-xl shadow-lg border border-neutral-200 p-6 sm:p-8 mb-6">
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="font-display text-lg font-semibold text-neutral-900">Your RSVP</h2>
+					<h2 class="font-display text-lg font-semibold text-neutral-900">{$_('rsvp.yourRsvp')}</h2>
 					{#if !editing && !rsvpsClosed && attendee.rsvpStatus !== 'waitlisted'}
 						<button
 							onclick={() => { populateEditForm(); editing = true; }}
@@ -371,7 +362,7 @@
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 							</svg>
-							Edit
+							{$_('rsvp.edit')}
 						</button>
 					{/if}
 				</div>
@@ -381,7 +372,7 @@
 						<!-- Name -->
 						<div>
 							<label for="edit-name" class="block text-sm font-medium text-neutral-700 mb-1.5">
-								Name <span class="text-error">*</span>
+								{$_('rsvp.name')} <span class="text-error">*</span>
 							</label>
 							<input
 								id="edit-name"
@@ -395,7 +386,7 @@
 						<!-- RSVP Status -->
 						<fieldset>
 							<legend class="block text-sm font-medium text-neutral-700 mb-3">
-								Will you attend?
+								{$_('rsvp.willYouAttend')}
 							</legend>
 							<div class="grid grid-cols-3 gap-3">
 								<label
@@ -407,9 +398,9 @@
 									<svg class="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
-									<span class="text-xs sm:text-sm font-medium">Attending</span>
+									<span class="text-xs sm:text-sm font-medium">{$_('rsvp.attending')}</span>
 									{#if attendingDisabled}
-										<span class="text-[10px] text-error mt-0.5">Full</span>
+										<span class="text-[10px] text-error mt-0.5">{$_('rsvp.full')}</span>
 									{/if}
 								</label>
 								<label class="rsvp-option" class:rsvp-option-selected={editStatus === 'maybe'} class:rsvp-option-maybe={editStatus === 'maybe'}>
@@ -417,14 +408,14 @@
 									<svg class="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
-									<span class="text-xs sm:text-sm font-medium">Maybe</span>
+									<span class="text-xs sm:text-sm font-medium">{$_('rsvp.maybe')}</span>
 								</label>
 								<label class="rsvp-option" class:rsvp-option-selected={editStatus === 'declined'} class:rsvp-option-declined={editStatus === 'declined'}>
 									<input type="radio" name="editStatus" value="declined" bind:group={editStatus} class="sr-only" />
 									<svg class="w-5 h-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
-									<span class="text-xs sm:text-sm font-medium">Can't make it</span>
+									<span class="text-xs sm:text-sm font-medium">{$_('rsvp.cantMakeIt')}</span>
 								</label>
 							</div>
 						</fieldset>
@@ -432,12 +423,12 @@
 						<!-- Dietary Notes -->
 						<div>
 							<label for="edit-dietary" class="block text-sm font-medium text-neutral-700 mb-1.5">
-								Dietary Notes <span class="text-neutral-400 font-normal">(optional)</span>
+								{$_('rsvp.dietaryNotes')} <span class="text-neutral-400 font-normal">{$_('rsvp.optional')}</span>
 							</label>
 							<textarea
 								id="edit-dietary"
 								bind:value={editDietary}
-								placeholder="Any allergies or dietary requirements?"
+								placeholder={$_('rsvp.dietaryPlaceholder')}
 								rows="2"
 								class="w-full rounded-md border border-neutral-300 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors resize-none"
 							></textarea>
@@ -446,7 +437,7 @@
 						<!-- Plus Ones -->
 						<div>
 							<label for="edit-plusones" class="block text-sm font-medium text-neutral-700 mb-1.5">
-								Additional Guests
+								{$_('rsvp.additionalGuests')}
 							</label>
 							<div class="flex items-center gap-3">
 								<input
@@ -457,7 +448,7 @@
 									bind:value={editPlusOnes}
 									class="w-20 rounded-md border border-neutral-300 px-3 py-2.5 text-neutral-900 text-center focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
 								/>
-								<span class="text-sm text-neutral-500">additional guest{editPlusOnes !== 1 ? 's' : ''}</span>
+								<span class="text-sm text-neutral-500">{editPlusOnes === 1 ? $_('rsvp.additionalGuestSuffix') : $_('rsvp.additionalGuestSuffixPlural')}</span>
 							</div>
 						</div>
 
@@ -480,7 +471,7 @@
 								onclick={() => { editing = false; saveError = ''; }}
 								class="flex-1 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
 							>
-								Cancel
+								{$_('rsvp.cancel')}
 							</button>
 							<button
 								type="submit"
@@ -493,10 +484,10 @@
 											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 										</svg>
-										Saving...
+										{$_('rsvp.saving')}
 									</span>
 								{:else}
-									Save Changes
+									{$_('rsvp.saveChanges')}
 								{/if}
 							</button>
 						</div>
@@ -505,29 +496,29 @@
 					<!-- Display mode -->
 					<div class="space-y-4">
 						<div class="flex items-center justify-between">
-							<span class="text-sm text-neutral-500">Name</span>
+							<span class="text-sm text-neutral-500">{$_('rsvp.name')}</span>
 							<span class="text-sm font-medium text-neutral-900">{attendee.name}</span>
 						</div>
 						{#if attendee.email}
 							<div class="flex items-center justify-between">
-								<span class="text-sm text-neutral-500">Email</span>
+								<span class="text-sm text-neutral-500">{$_('rsvp.email')}</span>
 								<span class="text-sm font-medium text-neutral-900">{attendee.email}</span>
 							</div>
 						{/if}
 						<div class="flex items-center justify-between">
-							<span class="text-sm text-neutral-500">Status</span>
+							<span class="text-sm text-neutral-500">{$_('rsvp.status')}</span>
 							<span class="inline-flex items-center rounded-full border px-3 py-0.5 text-xs font-semibold {statusBadgeClass(attendee.rsvpStatus)}">
-								{statusLabel(attendee.rsvpStatus)}
+								{$_('status.' + attendee.rsvpStatus)}
 							</span>
 						</div>
 						{#if attendee.dietaryNotes}
 							<div class="flex items-center justify-between">
-								<span class="text-sm text-neutral-500">Dietary Notes</span>
+								<span class="text-sm text-neutral-500">{$_('rsvp.dietaryNotes')}</span>
 								<span class="text-sm font-medium text-neutral-900">{attendee.dietaryNotes}</span>
 							</div>
 						{/if}
 						<div class="flex items-center justify-between">
-							<span class="text-sm text-neutral-500">Additional Guests</span>
+							<span class="text-sm text-neutral-500">{$_('rsvp.additionalGuests')}</span>
 							<span class="text-sm font-medium text-neutral-900">{attendee.plusOnes}</span>
 						</div>
 					</div>
@@ -537,13 +528,13 @@
 			<!-- Attendance Display -->
 			{#if attendance && (attendance.headcount > 0 || (attendance.names && attendance.names.length > 0)) && attendee.rsvpStatus !== 'declined'}
 				<div class="bg-surface rounded-xl shadow-lg border border-neutral-200 p-6 sm:p-8 mb-6">
-					<h2 class="font-display text-lg font-semibold text-neutral-900 mb-4">Who's Coming</h2>
+					<h2 class="font-display text-lg font-semibold text-neutral-900 mb-4">{$_('rsvp.whosComing')}</h2>
 					{#if attendance.headcount > 0}
 						<div class="flex items-center gap-2 text-sm text-neutral-700 mb-3">
 							<svg class="w-5 h-5 text-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
 							</svg>
-							<span class="font-medium">{attendance.headcount} {attendance.headcount === 1 ? 'person' : 'people'} attending</span>
+							<span class="font-medium">{$_(attendance.headcount === 1 ? 'rsvp.peopleAttendingOne' : 'rsvp.peopleAttendingOther', { values: { count: attendance.headcount } })}</span>
 						</div>
 					{/if}
 					{#if attendance.names && attendance.names.length > 0}
@@ -559,7 +550,7 @@
 									class="inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-200 transition-colors"
 									onclick={() => (showAllNames = true)}
 								>
-									+{attendance.names.length - 50} more
+									{$_('rsvp.moreCount', { values: { count: attendance.names.length - 50 } })}
 								</button>
 							{/if}
 							{#if showAllNames && attendance.names.length > 50}
@@ -568,7 +559,7 @@
 									class="inline-flex items-center rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-200 transition-colors"
 									onclick={() => (showAllNames = false)}
 								>
-									Show less
+									{$_('rsvp.showLess')}
 								</button>
 							{/if}
 						</div>
@@ -579,7 +570,7 @@
 			<!-- Send Message to Organizer -->
 			<div class="bg-surface rounded-xl shadow-lg border border-neutral-200 p-6 sm:p-8 mb-6">
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="font-display text-lg font-semibold text-neutral-900">Message Organizer</h2>
+					<h2 class="font-display text-lg font-semibold text-neutral-900">{$_('rsvp.messageOrganizer')}</h2>
 					{#if !showMessageForm}
 						<button
 							onclick={() => { showMessageForm = true; }}
@@ -588,7 +579,7 @@
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
 							</svg>
-							New Message
+							{$_('rsvp.newMessage')}
 						</button>
 					{/if}
 				</div>
@@ -598,7 +589,7 @@
 						<svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 						</svg>
-						Message sent to the organizer.
+						{$_('rsvp.messageSent')}
 					</div>
 				{/if}
 
@@ -606,26 +597,26 @@
 					<form onsubmit={handleSendMessage} class="space-y-4">
 						<div>
 							<label for="msg-subject" class="block text-sm font-medium text-neutral-700 mb-1.5">
-								Subject
+								{$_('rsvp.subject')}
 							</label>
 							<input
 								id="msg-subject"
 								type="text"
 								required
 								bind:value={msgSubject}
-								placeholder="What is this about?"
+								placeholder={$_('rsvp.subjectPlaceholder')}
 								class="w-full rounded-md border border-neutral-300 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
 							/>
 						</div>
 						<div>
 							<label for="msg-body" class="block text-sm font-medium text-neutral-700 mb-1.5">
-								Message
+								{$_('rsvp.message')}
 							</label>
 							<textarea
 								id="msg-body"
 								required
 								bind:value={msgBody}
-								placeholder="Write your message to the organizer..."
+								placeholder={$_('rsvp.messagePlaceholder')}
 								rows="4"
 								class="w-full rounded-md border border-neutral-300 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors resize-none"
 							></textarea>
@@ -643,7 +634,7 @@
 								onclick={() => { showMessageForm = false; messageError = ''; }}
 								class="flex-1 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
 							>
-								Cancel
+								{$_('rsvp.cancel')}
 							</button>
 							<button
 								type="submit"
@@ -656,10 +647,10 @@
 											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 										</svg>
-										Sending...
+										{$_('rsvp.sending')}
 									</span>
 								{:else}
-									Send Message
+									{$_('rsvp.sendMessage')}
 								{/if}
 							</button>
 						</div>
@@ -669,13 +660,13 @@
 				<!-- Messages list -->
 				{#if messages.length > 0}
 					<div class="mt-6 pt-6 border-t border-neutral-100">
-						<h3 class="text-sm font-medium text-neutral-500 mb-4">Conversation</h3>
+						<h3 class="text-sm font-medium text-neutral-500 mb-4">{$_('rsvp.conversation')}</h3>
 						<div class="space-y-4">
 							{#each messages as msg (msg.id)}
 								<div class="rounded-md border p-4 {msg.senderType === 'attendee' ? 'border-primary-light bg-primary-lighter ml-4' : 'border-neutral-100 bg-neutral-50 mr-4'}">
 									<div class="flex items-center justify-between mb-1">
 										<span class="text-xs font-semibold {msg.senderType === 'attendee' ? 'text-primary' : 'text-neutral-600'}">
-											{msg.senderType === 'attendee' ? 'You' : 'Organizer'}
+											{msg.senderType === 'attendee' ? $_('rsvp.you') : $_('rsvp.organizer')}
 										</span>
 										<span class="text-xs text-neutral-400">{formatMessageDate(msg.createdAt)}</span>
 									</div>
@@ -688,7 +679,7 @@
 						</div>
 					</div>
 				{:else if !showMessageForm && !loadingMessages}
-					<p class="text-sm text-neutral-400 text-center py-2">No messages yet.</p>
+					<p class="text-sm text-neutral-400 text-center py-2">{$_('rsvp.noMessages')}</p>
 				{/if}
 			</div>
 
@@ -696,7 +687,7 @@
 			<div class="mt-8 flex flex-col items-center gap-2 text-center">
 				<GuestFeedback source={$page.url.pathname} />
 				<a href="/" class="text-xs text-neutral-400 hover:text-neutral-500 transition-colors">
-					Powered by OpenRSVP
+					{$_('rsvp.poweredBy')}
 				</a>
 			</div>
 		{/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { _ } from 'svelte-i18n';
 	import { currentUser, isAdmin } from '$lib/stores/auth';
 	import Button from '$lib/components/ui/Button.svelte';
 
@@ -33,20 +34,20 @@
 						href="/events"
 						class="px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors duration-short ease-out"
 					>
-						Dashboard
+						{$_('nav.dashboard')}
 					</a>
 					<a
 						href="/events/new"
 						class="px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors duration-short ease-out"
 					>
-						Create Event
+						{$_('nav.createEvent')}
 					</a>
 					{#if $isAdmin}
 						<a
 							href="/admin"
 							class="px-3 py-2 rounded-md text-sm font-medium text-primary hover:text-primary-hover hover:bg-primary-light transition-colors duration-short ease-out"
 						>
-							Admin
+							{$_('nav.admin')}
 						</a>
 					{/if}
 				</div>
@@ -58,7 +59,7 @@
 					type="button"
 					class="rounded-md p-2 text-neutral-400 hover:text-neutral-700 transition-colors duration-short ease-out"
 					onclick={toggleTheme}
-					aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+					aria-label={isDark ? $_('nav.switchToLight') : $_('nav.switchToDark')}
 				>
 					{#if isDark}
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.06 1.06l1.06 1.06z" /></svg>
@@ -68,9 +69,9 @@
 				</button>
 				{#if $currentUser}
 					<span class="text-sm text-neutral-600">{$currentUser.email}</span>
-					<Button variant="ghost" size="sm" href="/account">Account</Button>
+					<Button variant="ghost" size="sm" href="/account">{$_('nav.account')}</Button>
 				{/if}
-				<Button variant="ghost" size="sm" href="/auth/logout">Logout</Button>
+				<Button variant="ghost" size="sm" href="/auth/logout">{$_('nav.logout')}</Button>
 			</div>
 
 			<!-- Mobile hamburger -->
@@ -78,7 +79,7 @@
 				type="button"
 				class="md:hidden p-2 rounded-md text-neutral-600 hover:bg-neutral-100 transition-colors duration-short ease-out"
 				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-				aria-label="Toggle menu"
+				aria-label={$_('nav.toggleMenu')}
 			>
 				{#if mobileMenuOpen}
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -111,20 +112,20 @@
 					href="/events"
 					class="block px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
 				>
-					Dashboard
+					{$_('nav.dashboard')}
 				</a>
 				<a
 					href="/events/new"
 					class="block px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
 				>
-					Create Event
+					{$_('nav.createEvent')}
 				</a>
 				{#if $isAdmin}
 					<a
 						href="/admin"
 						class="block px-3 py-2 rounded-md text-sm font-medium text-primary hover:text-primary-hover hover:bg-primary-light"
 					>
-						Admin
+						{$_('nav.admin')}
 					</a>
 				{/if}
 			</div>
@@ -136,21 +137,21 @@
 							href="/account"
 							class="block px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
 						>
-							Account
+							{$_('nav.account')}
 						</a>
 					{/if}
 					<a
 						href="/auth/logout"
 						class="block px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
 					>
-						Logout
+						{$_('nav.logout')}
 					</a>
 				</div>
 				<button
 					type="button"
 					class="rounded-md p-2 text-neutral-400 hover:text-neutral-700 transition-colors duration-short ease-out"
 					onclick={toggleTheme}
-					aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+					aria-label={isDark ? $_('nav.switchToLight') : $_('nav.switchToDark')}
 				>
 					{#if isDark}
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM10 7a3 3 0 100 6 3 3 0 000-6zM15.657 5.404a.75.75 0 10-1.06-1.06l-1.061 1.06a.75.75 0 001.06 1.06l1.06-1.06zM6.464 14.596a.75.75 0 10-1.06-1.06l-1.06 1.06a.75.75 0 001.06 1.06l1.06-1.06zM18 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0118 10zM5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 015 10zM14.596 15.657a.75.75 0 001.06-1.06l-1.06-1.061a.75.75 0 10-1.06 1.06l1.06 1.06zM5.404 6.464a.75.75 0 001.06-1.06l-1.06-1.06a.75.75 0 10-1.06 1.06l1.06 1.06z" /></svg>

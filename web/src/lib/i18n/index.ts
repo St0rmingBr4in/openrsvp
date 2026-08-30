@@ -1,4 +1,5 @@
 import { register, init, locale, waitLocale, isLoading } from 'svelte-i18n';
+import { get } from 'svelte/store';
 
 export const SUPPORTED_LOCALES = ['en', 'fr'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
@@ -22,6 +23,11 @@ export async function setLocale(value: string | null | undefined): Promise<void>
 		: FALLBACK_LOCALE;
 	locale.set(next);
 	await waitLocale(next);
+}
+
+/** BCP-47 tag for the active locale, for Intl date/number formatting. */
+export function localeTag(): string {
+	return get(locale) === 'fr' ? 'fr-FR' : 'en-US';
 }
 
 export { locale, waitLocale, isLoading };
