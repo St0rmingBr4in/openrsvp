@@ -349,7 +349,16 @@
 		"createFailed": "Échec de la création de l'événement",
 		"back": "Retour",
 		"next": "Suivant",
-		"createEvent": "Créer l'événement"
+		"createEvent": "Créer l'événement",
+		"editPageTitle": "Modifier l'événement -- OpenRSVP",
+		"backToEvent": "← Retour à l'événement",
+		"editHeading": "Modifier l'événement",
+		"loadFailed": "Échec du chargement de l'événement",
+		"updatedSuccess": "Événement mis à jour avec succès",
+		"updateFailed": "Échec de la mise à jour de l'événement",
+		"capacityWarning": "Attention : le nombre actuel de participants ({count}) dépasse cette limite. Les réponses existantes ne seront pas supprimées, mais aucune nouvelle participation ne sera acceptée.",
+		"cancel": "Annuler",
+		"saveChanges": "Enregistrer"
 	},
 	"eventStatus": {
 		"draft": "brouillon",

@@ -349,7 +349,16 @@
 		"createFailed": "Failed to create event",
 		"back": "Back",
 		"next": "Next",
-		"createEvent": "Create Event"
+		"createEvent": "Create Event",
+		"editPageTitle": "Edit Event -- OpenRSVP",
+		"backToEvent": "← Back to event",
+		"editHeading": "Edit Event",
+		"loadFailed": "Failed to load event",
+		"updatedSuccess": "Event updated successfully",
+		"updateFailed": "Failed to update event",
+		"capacityWarning": "Warning: Current attending headcount ({count}) exceeds this limit. Existing RSVPs will not be removed, but no new attending RSVPs will be accepted.",
+		"cancel": "Cancel",
+		"saveChanges": "Save Changes"
 	},
 	"eventStatus": {
 		"draft": "draft",
