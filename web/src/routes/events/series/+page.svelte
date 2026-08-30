@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { api } from '$lib/api/client';
 	import { toast } from '$lib/stores/toast';
 	import { formatDateTime } from '$lib/utils/dates';
@@ -13,11 +14,11 @@
 	let loading = $state(true);
 	let seriesList: EventSeries[] = $state([]);
 
-	const recurrenceLabels: Record<string, string> = {
-		weekly: 'Weekly',
-		biweekly: 'Every 2 weeks',
-		monthly: 'Monthly'
-	};
+	const recurrenceLabels: Record<string, string> = $derived({
+		weekly: $_('series.recWeekly'),
+		biweekly: $_('series.recBiweekly'),
+		monthly: $_('series.recMonthly')
+	});
 
 	onMount(async () => {
 		try {
@@ -25,7 +26,7 @@
 			seriesList = result.data;
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || 'Failed to load series');
+			toast.error(apiErr.message || $_('series.loadFailed'));
 		} finally {
 			loading = false;
 		}
@@ -33,16 +34,16 @@
 </script>
 
 <svelte:head>
-	<title>Recurring Series -- OpenRSVP</title>
+	<title>{$_('series.listPageTitle')}</title>
 </svelte:head>
 
 <AppShell>
 	<div class="flex items-center justify-between mb-8">
 		<div>
-			<a href="/events" class="text-sm text-primary hover:text-primary-hover">&larr; Back to events</a>
-			<h1 class="mt-2 text-2xl font-bold font-display text-neutral-900">Recurring Series</h1>
+			<a href="/events" class="text-sm text-primary hover:text-primary-hover">{$_('series.backToEvents')}</a>
+			<h1 class="mt-2 text-2xl font-bold font-display text-neutral-900">{$_('series.listHeading')}</h1>
 		</div>
-		<Button href="/events/series/new">Create Series</Button>
+		<Button href="/events/series/new">{$_('series.createSeries')}</Button>
 	</div>
 
 	{#if loading}
@@ -65,10 +66,10 @@
 						d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
 					/>
 				</svg>
-				<h3 class="mt-4 text-lg font-medium font-display text-neutral-900">No recurring series yet</h3>
-				<p class="mt-2 text-sm text-neutral-500">Create a series to automatically generate recurring events.</p>
+				<h3 class="mt-4 text-lg font-medium font-display text-neutral-900">{$_('series.noSeriesHeading')}</h3>
+				<p class="mt-2 text-sm text-neutral-500">{$_('series.noSeriesBody')}</p>
 				<div class="mt-6">
-					<Button href="/events/series/new">Create Your First Series</Button>
+					<Button href="/events/series/new">{$_('series.createFirst')}</Button>
 				</div>
 			</div>
 		</Card>
@@ -85,7 +86,7 @@
 									{series.title}
 								</h3>
 								<p class="mt-1 text-sm text-neutral-600">
-									{recurrenceLabels[series.recurrenceRule] || series.recurrenceRule} at {series.eventTime}
+									{recurrenceLabels[series.recurrenceRule] || series.recurrenceRule} {$_('series.atWord')} {series.eventTime}
 								</p>
 								{#if series.location}
 									<p class="mt-1 text-sm text-neutral-500 flex items-center gap-1">
@@ -113,17 +114,17 @@
 								{/if}
 							</div>
 							<Badge variant={series.seriesStatus === 'active' ? 'success' : 'neutral'}>
-								{series.seriesStatus}
+								{$_('series.status_' + series.seriesStatus)}
 							</Badge>
 						</div>
 						<div class="mt-4 flex items-center justify-between text-xs text-neutral-500">
 							<span>{recurrenceLabels[series.recurrenceRule] || series.recurrenceRule}</span>
 							{#if series.maxOccurrences}
-								<span>{series.maxOccurrences} occurrences max</span>
+								<span>{$_('series.occurrencesMax', { values: { count: series.maxOccurrences } })}</span>
 							{:else if series.recurrenceEnd}
-								<span>Until {formatDateTime(series.recurrenceEnd, series.timezone)}</span>
+								<span>{$_('series.until', { values: { date: formatDateTime(series.recurrenceEnd, series.timezone) } })}</span>
 							{:else}
-								<span>No end date</span>
+								<span>{$_('series.noEndDate')}</span>
 							{/if}
 						</div>
 					</Card>
