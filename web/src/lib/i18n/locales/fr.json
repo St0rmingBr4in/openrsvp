@@ -1,0 +1,35 @@
+{
+	"common": {
+		"appName": "OpenRSVP",
+		"backToHome": "Retour à l'accueil"
+	},
+	"auth": {
+		"login": {
+			"pageTitle": "Connexion -- OpenRSVP",
+			"heading": "Connectez-vous à votre compte",
+			"subtitle": "Saisissez votre e-mail pour recevoir un lien magique",
+			"emailRequired": "L'e-mail est requis",
+			"emailInvalid": "Veuillez saisir une adresse e-mail valide",
+			"sendFailed": "Échec de l'envoi du lien magique. Veuillez réessayer.",
+			"emailLabel": "Adresse e-mail",
+			"emailPlaceholder": "vous@exemple.com",
+			"sending": "Envoi...",
+			"sendButton": "Envoyer le lien magique",
+			"checkEmailHeading": "Vérifiez votre e-mail",
+			"checkEmailPre": "Nous avons envoyé un lien magique à ",
+			"checkEmailPost": ". Cliquez sur le lien dans l'e-mail pour vous connecter.",
+			"checkSpam": "Vous n'avez pas reçu l'e-mail ? Vérifiez vos spams ou réessayez.",
+			"tryDifferent": "Essayer une autre adresse e-mail"
+		},
+		"verify": {
+			"pageTitle": "Vérification -- OpenRSVP",
+			"heading": "Vérification de votre connexion",
+			"pleaseWait": "Veuillez patienter pendant la vérification de votre lien magique...",
+			"successToast": "Connexion réussie !",
+			"failedHeading": "Échec de la vérification",
+			"noToken": "Aucun jeton de vérification trouvé. Veuillez demander un nouveau lien magique.",
+			"failedDefault": "Échec de la vérification. Le lien a peut-être expiré.",
+			"tryAgain": "Réessayer"
+		}
+	}
+}

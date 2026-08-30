@@ -1,11 +1,19 @@
 <script lang="ts">
 	import '../app.css';
+	import '$lib/i18n';
 	import { currentUser, isLoading } from '$lib/stores/auth';
 	import { api } from '$lib/api/client';
 	import { onMount } from 'svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
+	import { loadAppConfig } from '$lib/stores/config';
+
+	// Gate rendering until the instance locale dictionary is loaded, so no
+	// translation keys flash before the language is applied.
+	let localeReady = $state(false);
 
 	onMount(async () => {
+		await loadAppConfig();
+		localeReady = true;
 		try {
 			const user = await api.get<import('$lib/types').Organizer>('/auth/me');
 			$currentUser = user;
@@ -30,6 +38,8 @@
 </script>
 
 <div class="min-h-screen bg-neutral-50">
-	{@render children()}
+	{#if localeReady}
+		{@render children()}
+	{/if}
 	<Toast />
 </div>

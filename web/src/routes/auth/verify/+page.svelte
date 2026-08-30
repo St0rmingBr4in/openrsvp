@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { _ } from 'svelte-i18n';
 	import { api } from '$lib/api/client';
 	import { currentUser } from '$lib/stores/auth';
 	import { toast } from '$lib/stores/toast';
@@ -16,7 +17,7 @@
 		const token = $page.url.searchParams.get('token');
 
 		if (!token) {
-			error = 'No verification token found. Please request a new magic link.';
+			error = $_('auth.verify.noToken');
 			verifying = false;
 			return;
 		}
@@ -29,29 +30,29 @@
 			// synchronously in onMount throws and aborts verification (issue #5).
 			replaceState('/auth/verify', {});
 			$currentUser = result.organizer;
-			toast.success('Successfully signed in!');
+			toast.success($_('auth.verify.successToast'));
 			goto('/events');
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			error = apiErr.message || 'Verification failed. The link may have expired.';
+			error = apiErr.message || $_('auth.verify.failedDefault');
 			verifying = false;
 		}
 	});
 </script>
 
 <svelte:head>
-	<title>Verify -- OpenRSVP</title>
+	<title>{$_('auth.verify.pageTitle')}</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center px-4">
 	<div class="w-full max-w-md text-center">
-		<a href="/" class="text-2xl font-bold text-primary">OpenRSVP</a>
+		<a href="/" class="text-2xl font-bold text-primary">{$_('common.appName')}</a>
 
 		{#if verifying}
-			<h1 class="font-display mt-4 text-2xl font-semibold text-neutral-900">Verifying your login</h1>
+			<h1 class="font-display mt-4 text-2xl font-semibold text-neutral-900">{$_('auth.verify.heading')}</h1>
 			<div class="mt-6 flex flex-col items-center">
 				<Spinner size="md" class="text-primary" />
-				<p class="mt-4 text-neutral-600">Please wait while we verify your magic link...</p>
+				<p class="mt-4 text-neutral-600">{$_('auth.verify.pleaseWait')}</p>
 			</div>
 		{:else if error}
 			<div class="mt-6">
@@ -67,9 +68,9 @@
 						/>
 					</svg>
 				</div>
-				<h2 class="font-display text-lg font-semibold text-neutral-900 mb-2">Verification failed</h2>
+				<h2 class="font-display text-lg font-semibold text-neutral-900 mb-2">{$_('auth.verify.failedHeading')}</h2>
 				<p class="text-sm text-neutral-600 mb-6">{error}</p>
-				<Button href="/auth/login">Try again</Button>
+				<Button href="/auth/login">{$_('auth.verify.tryAgain')}</Button>
 			</div>
 		{/if}
 	</div>

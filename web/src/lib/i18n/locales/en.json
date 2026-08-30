@@ -1,0 +1,35 @@
+{
+	"common": {
+		"appName": "OpenRSVP",
+		"backToHome": "Back to home"
+	},
+	"auth": {
+		"login": {
+			"pageTitle": "Sign In -- OpenRSVP",
+			"heading": "Sign in to your account",
+			"subtitle": "Enter your email to receive a magic link",
+			"emailRequired": "Email is required",
+			"emailInvalid": "Please enter a valid email address",
+			"sendFailed": "Failed to send magic link. Please try again.",
+			"emailLabel": "Email address",
+			"emailPlaceholder": "you@example.com",
+			"sending": "Sending...",
+			"sendButton": "Send Magic Link",
+			"checkEmailHeading": "Check your email",
+			"checkEmailPre": "We sent a magic link to ",
+			"checkEmailPost": ". Click the link in the email to sign in.",
+			"checkSpam": "Did not receive the email? Check your spam folder or try again.",
+			"tryDifferent": "Try a different email"
+		},
+		"verify": {
+			"pageTitle": "Verify -- OpenRSVP",
+			"heading": "Verifying your login",
+			"pleaseWait": "Please wait while we verify your magic link...",
+			"successToast": "Successfully signed in!",
+			"failedHeading": "Verification failed",
+			"noToken": "No verification token found. Please request a new magic link.",
+			"failedDefault": "Verification failed. The link may have expired.",
+			"tryAgain": "Try again"
+		}
+	}
+}

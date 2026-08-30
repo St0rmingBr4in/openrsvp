@@ -17,6 +17,9 @@ type Config struct {
 	Port string
 	Env  string
 
+	// DefaultLocale is the instance-wide UI/email language ("en" or "fr").
+	DefaultLocale string
+
 	// Database
 	DBDriver string
 	DBDSN    string
@@ -126,6 +129,11 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid ENV: %s (must be development or production)", env)
 	}
 
+	defaultLocale := getEnv("DEFAULT_LOCALE", "en")
+	if defaultLocale != "en" && defaultLocale != "fr" {
+		return nil, fmt.Errorf("invalid DEFAULT_LOCALE: %s (must be en or fr)", defaultLocale)
+	}
+
 	portInt, err := strconv.Atoi(port)
 	if err != nil || portInt < 1 || portInt > 65535 {
 		return nil, fmt.Errorf("invalid PORT: %s (must be an integer between 1 and 65535)", port)
@@ -177,8 +185,9 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port: port,
-		Env:  env,
+		Port:          port,
+		Env:           env,
+		DefaultLocale: defaultLocale,
 
 		DBDriver: dbDriver,
 		DBDSN:    dbDSN,
