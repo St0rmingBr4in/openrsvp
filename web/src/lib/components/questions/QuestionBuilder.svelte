@@ -84,12 +84,12 @@
 
 	async function handleAddQuestion() {
 		if (!newLabel.trim()) {
-			toast.error($_('qb.labelRequired');
+			toast.error($_('qb.labelRequired'));
 			return;
 		}
 
 		if ((newType === 'select' || newType === 'checkbox') && newOptions.filter((o) => o.trim()).length < 2) {
-			toast.error($_('qb.min2Options');
+			toast.error($_('qb.min2Options'));
 			return;
 		}
 
@@ -109,10 +109,10 @@
 			newType = 'text';
 			newOptions = [''];
 			newRequired = false;
-			toast.success($_('qb.added');
+			toast.success($_('qb.added'));
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || $_('qb.addFailed');
+			toast.error(apiErr.message || $_('qb.addFailed'));
 		} finally {
 			saving = false;
 		}
@@ -133,12 +133,12 @@
 	async function saveEdit() {
 		if (!editingId) return;
 		if (!editLabel.trim()) {
-			toast.error($_('qb.labelRequired');
+			toast.error($_('qb.labelRequired'));
 			return;
 		}
 
 		if ((editType === 'select' || editType === 'checkbox') && editOptions.filter((o) => o.trim()).length < 2) {
-			toast.error($_('qb.min2Options');
+			toast.error($_('qb.min2Options'));
 			return;
 		}
 
@@ -153,10 +153,10 @@
 			const result = await api.put<{ data: EventQuestion }>(`/events/${eventId}/questions/${editingId}`, body);
 			questions = questions.map((q) => (q.id === editingId ? result.data : q));
 			editingId = null;
-			toast.success($_('qb.updated');
+			toast.success($_('qb.updated'));
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || $_('qb.updateFailed');
+			toast.error(apiErr.message || $_('qb.updateFailed'));
 		} finally {
 			editSaving = false;
 		}
@@ -166,10 +166,10 @@
 		try {
 			await api.delete(`/events/${eventId}/questions/${qId}`);
 			questions = questions.filter((q) => q.id !== qId);
-			toast.success($_('qb.deleted');
+			toast.success($_('qb.deleted'));
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || $_('qb.deleteFailed');
+			toast.error(apiErr.message || $_('qb.deleteFailed'));
 		}
 	}
 
@@ -188,7 +188,7 @@
 			await api.put(`/events/${eventId}/questions/reorder`, { questionIds });
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || $_('qb.reorderFailed');
+			toast.error(apiErr.message || $_('qb.reorderFailed'));
 			await loadQuestions();
 		}
 	}
