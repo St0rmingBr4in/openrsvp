@@ -24,15 +24,20 @@ var (
 )
 
 func init() {
-	magicLinkTmpl = template.Must(template.ParseFS(templateFS, "magic_link.html"))
-	rsvpConfirmationTmpl = template.Must(template.ParseFS(templateFS, "rsvp_confirmation.html"))
-	eventReminderTmpl = template.Must(template.ParseFS(templateFS, "event_reminder.html"))
-	retentionWarningTmpl = template.Must(template.ParseFS(templateFS, "retention_warning.html"))
-	organizerRSVPNotifyTmpl = template.Must(template.ParseFS(templateFS, "organizer_rsvp_notification.html"))
-	feedbackConfirmationTmpl = template.Must(template.ParseFS(templateFS, "feedback_confirmation.html"))
-	rsvpLookupTmpl = template.Must(template.ParseFS(templateFS, "rsvp_lookup.html"))
-	waitlistPromotionTmpl = template.Must(template.ParseFS(templateFS, "waitlist_promotion.html"))
-	cohostInvitationTmpl = template.Must(template.ParseFS(templateFS, "cohost_invitation.html"))
+	// "t" exposes the localized message catalog to templates as {{(t).Field}}.
+	fm := template.FuncMap{"t": Locale}
+	parse := func(name string) *template.Template {
+		return template.Must(template.New(name).Funcs(fm).ParseFS(templateFS, name))
+	}
+	magicLinkTmpl = parse("magic_link.html")
+	rsvpConfirmationTmpl = parse("rsvp_confirmation.html")
+	eventReminderTmpl = parse("event_reminder.html")
+	retentionWarningTmpl = parse("retention_warning.html")
+	organizerRSVPNotifyTmpl = parse("organizer_rsvp_notification.html")
+	feedbackConfirmationTmpl = parse("feedback_confirmation.html")
+	rsvpLookupTmpl = parse("rsvp_lookup.html")
+	waitlistPromotionTmpl = parse("waitlist_promotion.html")
+	cohostInvitationTmpl = parse("cohost_invitation.html")
 }
 
 // magicLinkData holds the template data for a magic link email.
@@ -83,19 +88,20 @@ type organizerRSVPNotificationData struct {
 	Colors       EmailColors
 }
 
-// displayStatus returns a human-friendly label for an RSVP status value.
+// displayStatus returns a human-friendly, localized label for an RSVP status.
 func displayStatus(status string) string {
+	m := Locale()
 	switch status {
 	case "attending":
-		return "Attending"
+		return m.StatusAttending
 	case "maybe":
-		return "Maybe"
+		return m.StatusMaybe
 	case "declined":
-		return "Can't make it"
+		return m.StatusDeclined
 	case "pending":
-		return "Pending"
+		return m.StatusPending
 	case "waitlisted":
-		return "Waitlisted"
+		return m.StatusWaitlisted
 	default:
 		return status
 	}
@@ -117,9 +123,10 @@ func RenderMagicLink(baseURL, token string, expiryMinutes int) (html, plain stri
 		return "", "", fmt.Errorf("render magic link template: %w", err)
 	}
 
+	m := Locale()
 	plainText := fmt.Sprintf(
-		"Sign in to OpenRSVP\n\nClick the link below to sign in:\n%s\n\nThis link expires in %d minutes.\n\nIf you did not request this link, you can safely ignore this email.",
-		url, expiryMinutes,
+		"%s\n\n%s\n%s\n\n%s\n\n%s",
+		m.MagicPlainTitle, m.MagicPlainBody, url, fmt.Sprintf(m.MagicPlainExpiry, expiryMinutes), m.MagicPlainIgnore,
 	)
 
 	return buf.String(), plainText, nil
@@ -143,13 +150,14 @@ func RenderRSVPConfirmation(eventTitle, eventDate, location, rsvpStatus, modifyU
 		return "", "", fmt.Errorf("render rsvp confirmation template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("RSVP Confirmed\n\n")
-	sb.WriteString(fmt.Sprintf("Event: %s\n", eventTitle))
-	sb.WriteString(fmt.Sprintf("Date: %s\n", eventDate))
-	sb.WriteString(fmt.Sprintf("Location: %s\n", location))
-	sb.WriteString(fmt.Sprintf("Your RSVP: %s\n\n", rsvpStatus))
-	sb.WriteString(fmt.Sprintf("To modify your RSVP, visit:\n%s\n", modifyURL))
+	sb.WriteString(m.RSVPConfPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelEvent, eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelDate, eventDate))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelLocation, location))
+	sb.WriteString(fmt.Sprintf("%s: %s\n\n", m.LabelYourRSVP, label))
+	sb.WriteString(fmt.Sprintf("%s\n%s\n", m.ModifyButton, modifyURL))
 
 	return buf.String(), sb.String(), nil
 }
@@ -171,15 +179,16 @@ func RenderEventReminder(eventTitle, eventDate, location, message, inviteURL str
 		return "", "", fmt.Errorf("render event reminder template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("Event Reminder\n\n")
-	sb.WriteString(fmt.Sprintf("Event: %s\n", eventTitle))
-	sb.WriteString(fmt.Sprintf("Date: %s\n", eventDate))
-	sb.WriteString(fmt.Sprintf("Location: %s\n\n", location))
+	sb.WriteString(m.ReminderPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelEvent, eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelDate, eventDate))
+	sb.WriteString(fmt.Sprintf("%s: %s\n\n", m.LabelLocation, location))
 	if message != "" {
-		sb.WriteString(fmt.Sprintf("Message from the organizer:\n%s\n\n", message))
+		sb.WriteString(fmt.Sprintf("%s\n%s\n\n", m.ReminderPlainOrgMsg, message))
 	}
-	sb.WriteString(fmt.Sprintf("View your invitation:\n%s\n", inviteURL))
+	sb.WriteString(fmt.Sprintf("%s\n%s\n", m.ReminderPlainInvite, inviteURL))
 
 	return buf.String(), sb.String(), nil
 }
@@ -199,12 +208,13 @@ func RenderRetentionWarning(eventTitle, expiresAt, dashboardURL string) (html, p
 		return "", "", fmt.Errorf("render retention warning template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("Data Retention Notice\n\n")
-	sb.WriteString(fmt.Sprintf("Your event \"%s\" is scheduled for automatic deletion on %s.\n\n", eventTitle, expiresAt))
-	sb.WriteString("After this date, all event data including attendee RSVPs, messages, and invite cards will be permanently deleted.\n\n")
+	sb.WriteString(m.RetentionPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf(m.RetentionPlainBody+"\n\n", eventTitle, expiresAt))
+	sb.WriteString(m.RetentionPlainNote + "\n\n")
 	if dashboardURL != "" {
-		sb.WriteString(fmt.Sprintf("To extend the retention period, visit:\n%s\n", dashboardURL))
+		sb.WriteString(fmt.Sprintf("%s\n%s\n", m.RetentionPlainExtend, dashboardURL))
 	}
 
 	return buf.String(), sb.String(), nil
@@ -230,21 +240,22 @@ func RenderOrganizerRSVPNotification(eventTitle, guestName, rsvpStatus, guestEma
 		return "", "", fmt.Errorf("render organizer rsvp notification template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("New RSVP Received\n\n")
-	sb.WriteString(fmt.Sprintf("Event: %s\n", eventTitle))
-	sb.WriteString(fmt.Sprintf("Guest: %s\n", guestName))
-	sb.WriteString(fmt.Sprintf("Response: %s\n", rsvpStatus))
+	sb.WriteString(m.OrgNotifyPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelEvent, eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelGuest, guestName))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelResponse, label))
 	if guestEmail != "" {
-		sb.WriteString(fmt.Sprintf("Email: %s\n", guestEmail))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelEmail, guestEmail))
 	}
 	if guestPhone != "" {
-		sb.WriteString(fmt.Sprintf("Phone: %s\n", guestPhone))
+		sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelPhone, guestPhone))
 	}
 	if plusOnes > 0 {
-		sb.WriteString(fmt.Sprintf("Additional Guests: +%d\n", plusOnes))
+		sb.WriteString(fmt.Sprintf("%s: +%d\n", m.LabelAdditional, plusOnes))
 	}
-	sb.WriteString(fmt.Sprintf("\nView your event dashboard:\n%s\n", dashboardURL))
+	sb.WriteString(fmt.Sprintf("\n%s\n%s\n", m.OrgNotifyPlainView, dashboardURL))
 
 	return buf.String(), sb.String(), nil
 }
@@ -270,9 +281,10 @@ func RenderRSVPLookup(eventTitle, modifyURL string) (html, plain string, err err
 		return "", "", fmt.Errorf("render rsvp lookup template: %w", err)
 	}
 
+	m := Locale()
 	plainText := fmt.Sprintf(
-		"Find Your RSVP\n\nClick the link below to view and manage your RSVP for %s:\n%s\n\nThis link is personal — please don't share it.",
-		eventTitle, modifyURL,
+		"%s\n\n%s\n%s\n\n%s",
+		m.LookupPlainTitle, fmt.Sprintf(m.LookupPlainBody, eventTitle), modifyURL, m.LookupPlainNote,
 	)
 
 	return buf.String(), plainText, nil
@@ -299,13 +311,14 @@ func RenderFeedbackConfirmation(feedbackType string, allowFollowUp bool) (htmlBo
 		return "", "", fmt.Errorf("render feedback confirmation template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("Thanks for your feedback!\n\n")
-	sb.WriteString(fmt.Sprintf("We received your %s submission and appreciate you taking the time to share it with us.\n\n", feedbackType))
+	sb.WriteString(m.FeedbackPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf(m.FeedbackPlainBody+"\n\n", feedbackType))
 	if allowFollowUp {
-		sb.WriteString("Since you opted in to follow-up contact, we may reach out to you if we have questions or updates related to your feedback.\n\n")
+		sb.WriteString(m.FeedbackFollowUp + "\n\n")
 	}
-	sb.WriteString("Your feedback helps make OpenRSVP better for everyone.\n")
+	sb.WriteString(m.FeedbackPlainOutro + "\n")
 
 	return buf.String(), sb.String(), nil
 }
@@ -337,13 +350,14 @@ func RenderCoHostInvitation(eventTitle, eventDate, location, addedByName, dashbo
 		return "", "", fmt.Errorf("render cohost invitation template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("You've Been Added as a Co-Host\n\n")
-	sb.WriteString(fmt.Sprintf("%s has added you as a co-host for %s.\n\n", addedByName, eventTitle))
-	sb.WriteString(fmt.Sprintf("Event: %s\n", eventTitle))
-	sb.WriteString(fmt.Sprintf("Date: %s\n", eventDate))
-	sb.WriteString(fmt.Sprintf("Location: %s\n\n", location))
-	sb.WriteString(fmt.Sprintf("View the event dashboard:\n%s\n", dashboardURL))
+	sb.WriteString(m.CohostPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf(m.CohostPlainBody+"\n\n", addedByName, eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelEvent, eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelDate, eventDate))
+	sb.WriteString(fmt.Sprintf("%s: %s\n\n", m.LabelLocation, location))
+	sb.WriteString(fmt.Sprintf("%s\n%s\n", m.CohostPlainView, dashboardURL))
 
 	return buf.String(), sb.String(), nil
 }
@@ -373,13 +387,14 @@ func RenderWaitlistPromotion(eventTitle, eventDate, location, modifyURL string) 
 		return "", "", fmt.Errorf("render waitlist promotion template: %w", err)
 	}
 
+	m := Locale()
 	var sb strings.Builder
-	sb.WriteString("A Spot Opened Up!\n\n")
-	sb.WriteString(fmt.Sprintf("Great news! A spot opened up for %s. You are now attending.\n\n", eventTitle))
-	sb.WriteString(fmt.Sprintf("Event: %s\n", eventTitle))
-	sb.WriteString(fmt.Sprintf("Date: %s\n", eventDate))
-	sb.WriteString(fmt.Sprintf("Location: %s\n\n", location))
-	sb.WriteString(fmt.Sprintf("View your RSVP:\n%s\n", modifyURL))
+	sb.WriteString(m.WaitlistPlainTitle + "\n\n")
+	sb.WriteString(fmt.Sprintf(m.WaitlistPlainBody+"\n\n", eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelEvent, eventTitle))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", m.LabelDate, eventDate))
+	sb.WriteString(fmt.Sprintf("%s: %s\n\n", m.LabelLocation, location))
+	sb.WriteString(fmt.Sprintf("%s\n%s\n", m.WaitlistPlainView, modifyURL))
 
 	return buf.String(), sb.String(), nil
 }

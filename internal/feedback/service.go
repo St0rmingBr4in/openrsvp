@@ -60,7 +60,7 @@ func (s *Service) Submit(ctx context.Context, organizerEmail, feedbackType, mess
 			log.Error().Err(err).Msg("failed to render feedback confirmation template")
 			return nil
 		}
-		if err := s.sendEmail(ctx, organizerEmail, "We received your feedback — OpenRSVP", htmlBody, plain); err != nil {
+		if err := s.sendEmail(ctx, organizerEmail, templates.Locale().SubjFeedbackConfirm, htmlBody, plain); err != nil {
 			log.Error().Err(err).Str("email", organizerEmail).Msg("failed to send feedback confirmation email")
 		}
 	}

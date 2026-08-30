@@ -250,7 +250,7 @@ func (j *ReminderJob) sendToAttendee(ctx context.Context, reminder *Reminder, at
 
 		msg := &notification.Message{
 			To:      *attendee.email,
-			Subject: "Event Reminder — " + ev.title,
+			Subject: templates.Locale().SubjReminder + " — " + ev.title,
 			Body:    htmlBody,
 			Plain:   plainBody,
 		}

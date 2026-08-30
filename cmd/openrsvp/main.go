@@ -10,6 +10,7 @@ import (
 
 	"github.com/yannkr/openrsvp/internal/config"
 	"github.com/yannkr/openrsvp/internal/database"
+	"github.com/yannkr/openrsvp/internal/notification/templates"
 	"github.com/yannkr/openrsvp/internal/server"
 )
 
@@ -30,6 +31,9 @@ func main() {
 	if cfg.Env == "production" {
 		logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
 	}
+
+	// Apply the instance-wide email locale (UI locale is applied client-side).
+	templates.SetDefaultLocale(cfg.DefaultLocale)
 
 	logger.Info().
 		Str("env", cfg.Env).

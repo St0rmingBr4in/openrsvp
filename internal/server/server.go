@@ -330,7 +330,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 				} else {
 					confirmMsg := &notification.Message{
 						To:      *attendee.Email,
-						Subject: "RSVP Confirmation — " + ev.Title,
+						Subject: templates.Locale().SubjRSVPConfirmation + " — " + ev.Title,
 						Body:    htmlBody,
 						Plain:   plainBody,
 					}
@@ -395,7 +395,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 			if err := notifService.Send(ctx, eventID, attendee.ID, notification.ChannelEmail, &notification.Message{
 				To:      organizer.Email,
-				Subject: "New RSVP — " + attendee.Name + " — " + ev.Title + " (" + ev.EventDate.Format("Jan 2") + ")",
+				Subject: templates.Locale().SubjNewRSVP + " — " + attendee.Name + " — " + ev.Title + " (" + ev.EventDate.Format("Jan 2") + ")",
 				Body:    htmlBody,
 				Plain:   plainBody,
 			}); err != nil {
@@ -436,7 +436,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 			if err := notifService.Send(ctx, eventID, attendee.ID, notification.ChannelEmail, &notification.Message{
 				To:      *attendee.Email,
-				Subject: "You're Invited — " + ev.Title,
+				Subject: templates.Locale().SubjInvited + " — " + ev.Title,
 				Body:    htmlBody,
 				Plain:   plainBody,
 			}); err != nil {
@@ -475,7 +475,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 			if err := notifService.Send(ctx, eventID, addedByOrganizerID, notification.ChannelEmail, &notification.Message{
 				To:      coHostEmail,
-				Subject: "You've been added as a co-host — " + ev.Title,
+				Subject: templates.Locale().SubjCohost + " — " + ev.Title,
 				Body:    htmlBody,
 				Plain:   plainBody,
 			}); err != nil {
@@ -512,7 +512,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 			if err := notifService.Send(ctx, eventID, attendee.ID, notification.ChannelEmail, &notification.Message{
 				To:      *attendee.Email,
-				Subject: "A spot opened up! — " + ev.Title,
+				Subject: templates.Locale().SubjWaitlist + " — " + ev.Title,
 				Body:    htmlBody,
 				Plain:   plainBody,
 			}); err != nil {
@@ -682,7 +682,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 			if err := notifService.Send(ctx, eventID, attendeeID, notification.ChannelEmail, &notification.Message{
 				To:      organizer.Email,
-				Subject: "New message from " + senderName + " — " + subject,
+				Subject: templates.Locale().SubjNewMessage + " " + senderName + " — " + subject,
 				Body:    htmlBody,
 				Plain:   plainBody,
 			}); err != nil {
@@ -810,7 +810,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 				if err := notifService.Send(ctx, e.ID, a.ID, notification.ChannelEmail, &notification.Message{
 					To:      *a.Email,
-					Subject: "Event Cancelled -- " + e.Title,
+					Subject: templates.Locale().SubjCancelled + " -- " + e.Title,
 					Body:    htmlBody,
 					Plain:   plainBody,
 				}); err != nil {
@@ -851,7 +851,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 
 			if _, sendErr := provider.Send(ctx, &notification.Message{
 				To:      organizerEmail,
-				Subject: "Data Retention Notice — " + eventTitle,
+				Subject: templates.Locale().SubjRetention + " — " + eventTitle,
 				Body:    htmlBody,
 				Plain:   plainBody,
 			}); sendErr != nil {
