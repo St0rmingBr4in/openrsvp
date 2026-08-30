@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { _ } from 'svelte-i18n';
 	import { api } from '$lib/api/client';
 	import { toast } from '$lib/stores/toast';
 	import type { InviteCard, Event } from '$lib/types';
@@ -25,9 +26,9 @@
 	let selectedTemplate = $state('balloon-party');
 
 	// Customization fields
-	let heading = $state('You\'re Invited!');
-	let body = $state('Join us for a wonderful celebration.');
-	let footer = $state('We hope to see you there!');
+	let heading = $state($_('inviteEditor.defaultHeading'));
+	let body = $state($_('inviteEditor.defaultBody'));
+	let footer = $state($_('inviteEditor.defaultFooter'));
 	let primaryColor = $state('#4F46E5');
 	let secondaryColor = $state('#EC4899');
 	let font = $state('Inter');
@@ -36,76 +37,26 @@
 	let backgroundImageUrl = $state('');
 	let uploading = $state(false);
 
-	const templates = [
-		{
-			id: 'balloon-party',
-			name: 'Balloon Party',
-			description: 'Colorful balloons and confetti',
-			emoji: '\u{1F388}'
-		},
-		{
-			id: 'confetti',
-			name: 'Confetti',
-			description: 'Colorful and celebratory',
-			emoji: '\u{1F38A}'
-		},
-		{
-			id: 'unicorn-magic',
-			name: 'Unicorn Magic',
-			description: 'Purple and pink dreamscape',
-			emoji: '\u{1F984}'
-		},
-		{
-			id: 'superhero',
-			name: 'Superhero',
-			description: 'Bold and action-packed',
-			emoji: '\u{26A1}'
-		},
-		{
-			id: 'garden-picnic',
-			name: 'Garden Picnic',
-			description: 'Green and floral',
-			emoji: '\u{1F33F}'
-		},
-		{
-			id: 'elegant-affair',
-			name: 'Elegant Affair',
-			description: 'Refined and sophisticated',
-			emoji: '\u{1F48E}'
-		},
-		{
-			id: 'clean-minimal',
-			name: 'Clean Minimal',
-			description: 'Simple and modern',
-			emoji: '\u{25FE}'
-		},
-		{
-			id: 'tropical-vibes',
-			name: 'Tropical Vibes',
-			description: 'Warm and beachy',
-			emoji: '\u{1F334}'
-		},
-		{
-			id: 'vintage-retro',
-			name: 'Vintage Retro',
-			description: 'Classic sepia tones',
-			emoji: '\u{1F4F7}'
-		},
-		{
-			id: 'chalkboard',
-			name: 'Chalkboard',
-			description: 'Dark and handwritten',
-			emoji: '\u{270D}'
-		}
-	];
+	const templates = $derived([
+		{ id: 'balloon-party', name: $_('inviteEditor.tplBalloonName'), description: $_('inviteEditor.tplBalloonDesc'), emoji: '\u{1F388}' },
+		{ id: 'confetti', name: $_('inviteEditor.tplConfettiName'), description: $_('inviteEditor.tplConfettiDesc'), emoji: '\u{1F38A}' },
+		{ id: 'unicorn-magic', name: $_('inviteEditor.tplUnicornName'), description: $_('inviteEditor.tplUnicornDesc'), emoji: '\u{1F984}' },
+		{ id: 'superhero', name: $_('inviteEditor.tplSuperheroName'), description: $_('inviteEditor.tplSuperheroDesc'), emoji: '\u{26A1}' },
+		{ id: 'garden-picnic', name: $_('inviteEditor.tplGardenName'), description: $_('inviteEditor.tplGardenDesc'), emoji: '\u{1F33F}' },
+		{ id: 'elegant-affair', name: $_('inviteEditor.tplElegantName'), description: $_('inviteEditor.tplElegantDesc'), emoji: '\u{1F48E}' },
+		{ id: 'clean-minimal', name: $_('inviteEditor.tplMinimalName'), description: $_('inviteEditor.tplMinimalDesc'), emoji: '\u{25FE}' },
+		{ id: 'tropical-vibes', name: $_('inviteEditor.tplTropicalName'), description: $_('inviteEditor.tplTropicalDesc'), emoji: '\u{1F334}' },
+		{ id: 'vintage-retro', name: $_('inviteEditor.tplVintageName'), description: $_('inviteEditor.tplVintageDesc'), emoji: '\u{1F4F7}' },
+		{ id: 'chalkboard', name: $_('inviteEditor.tplChalkboardName'), description: $_('inviteEditor.tplChalkboardDesc'), emoji: '\u{270D}' }
+	]);
 
-	const fontOptions = [
-		{ value: 'Inter', label: 'Inter (Modern)' },
-		{ value: 'Georgia', label: 'Georgia (Serif)' },
-		{ value: 'Courier New', label: 'Courier New (Mono)' },
-		{ value: 'Comic Sans MS', label: 'Comic Sans (Fun)' },
-		{ value: 'Arial', label: 'Arial (Clean)' }
-	];
+	const fontOptions = $derived([
+		{ value: 'Inter', label: $_('inviteEditor.fontInter') },
+		{ value: 'Georgia', label: $_('inviteEditor.fontGeorgia') },
+		{ value: 'Courier New', label: $_('inviteEditor.fontCourier') },
+		{ value: 'Comic Sans MS', label: $_('inviteEditor.fontComic') },
+		{ value: 'Arial', label: $_('inviteEditor.fontArial') }
+	]);
 
 	const customDataJSON = $derived(
 		backgroundImageUrl
@@ -145,7 +96,7 @@
 			}
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || 'Failed to load invite data');
+			toast.error(apiErr.message || $_('inviteEditor.loadFailed'));
 		} finally {
 			loading = false;
 		}
@@ -165,10 +116,10 @@
 				customData: customDataJSON
 			});
 			saved = true;
-			toast.success('Invite design saved!');
+			toast.success($_('inviteEditor.saved'));
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || 'Failed to save invite design');
+			toast.error(apiErr.message || $_('inviteEditor.saveFailed'));
 		} finally {
 			saving = false;
 		}
@@ -179,7 +130,7 @@
 		if (!file) return;
 
 		if (file.size > 2 * 1024 * 1024) {
-			toast.error('Image must be under 2MB');
+			toast.error($_('inviteEditor.imageTooBig'));
 			return;
 		}
 
@@ -187,10 +138,10 @@
 		try {
 			const result = await api.upload<{ data: { url: string } }>(`/invite/event/${eventId}/image`, file);
 			backgroundImageUrl = result.data.url;
-			toast.success('Background image uploaded!');
+			toast.success($_('inviteEditor.imageUploaded'));
 		} catch (err: unknown) {
 			const apiErr = err as { message?: string };
-			toast.error(apiErr.message || 'Failed to upload image');
+			toast.error(apiErr.message || $_('inviteEditor.uploadFailed'));
 		} finally {
 			uploading = false;
 		}
@@ -204,10 +155,10 @@
 			try {
 				const result = await api.post<{ data: Event }>(`/events/${eventId}/publish`);
 				event = result.data;
-				toast.success('Event published!');
+				toast.success($_('inviteEditor.published'));
 			} catch (err: unknown) {
 				const apiErr = err as { message?: string };
-				toast.error(apiErr.message || 'Failed to publish event');
+				toast.error(apiErr.message || $_('inviteEditor.publishFailed'));
 				publishing = false;
 				return;
 			}
@@ -240,13 +191,13 @@
 </script>
 
 <svelte:head>
-	<title>Invite Designer -- OpenRSVP</title>
+	<title>{$_('inviteEditor.pageTitle')}</title>
 </svelte:head>
 
 <AppShell>
 	<div class="mb-6">
-		<a href="/events/{eventId}" class="text-sm text-primary hover:text-primary-hover">&larr; Back to event</a>
-		<h1 class="mt-2 text-2xl font-bold font-display text-neutral-900">Invite Designer</h1>
+		<a href="/events/{eventId}" class="text-sm text-primary hover:text-primary-hover">{$_('inviteEditor.backToEvent')}</a>
+		<h1 class="mt-2 text-2xl font-bold font-display text-neutral-900">{$_('inviteEditor.heading')}</h1>
 		{#if event}
 			<p class="text-sm text-neutral-500">{event.title}</p>
 		{/if}
@@ -263,7 +214,7 @@
 				<!-- Template picker -->
 				<Card>
 					{#snippet header()}
-						<h2 class="text-lg font-semibold font-display text-neutral-900">Choose a Template</h2>
+						<h2 class="text-lg font-semibold font-display text-neutral-900">{$_('inviteEditor.chooseTemplate')}</h2>
 					{/snippet}
 
 					<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -286,25 +237,25 @@
 				<!-- Customization form -->
 				<Card>
 					{#snippet header()}
-						<h2 class="text-lg font-semibold font-display text-neutral-900">Customize</h2>
+						<h2 class="text-lg font-semibold font-display text-neutral-900">{$_('inviteEditor.customize')}</h2>
 					{/snippet}
 
 					<div class="space-y-4">
-						<Input label="Heading" name="heading" bind:value={heading} placeholder="You're Invited!" />
+						<Input label={$_('inviteEditor.headingLabel')} name="heading" bind:value={heading} placeholder={$_('inviteEditor.defaultHeading')} />
 
 						<Textarea
-							label="Body Text"
+							label={$_('inviteEditor.bodyText')}
 							name="body"
 							bind:value={body}
-							placeholder="Join us for a wonderful celebration..."
+							placeholder={$_('inviteEditor.bodyPlaceholder')}
 							rows={3}
 						/>
 
-						<Input label="Footer Text" name="footer" bind:value={footer} placeholder="We hope to see you there!" />
+						<Input label={$_('inviteEditor.footerText')} name="footer" bind:value={footer} placeholder={$_('inviteEditor.defaultFooter')} />
 
 						<div class="grid grid-cols-2 gap-4">
 							<div class="space-y-1">
-								<label for="primaryColor" class="block text-sm font-medium text-neutral-700">Primary Color</label>
+								<label for="primaryColor" class="block text-sm font-medium text-neutral-700">{$_('inviteEditor.primaryColor')}</label>
 								<input
 									id="primaryColor"
 									type="color"
@@ -313,7 +264,7 @@
 								/>
 							</div>
 							<div class="space-y-1">
-								<label for="secondaryColor" class="block text-sm font-medium text-neutral-700">Secondary Color</label>
+								<label for="secondaryColor" class="block text-sm font-medium text-neutral-700">{$_('inviteEditor.secondaryColor')}</label>
 								<input
 									id="secondaryColor"
 									type="color"
@@ -323,19 +274,19 @@
 							</div>
 						</div>
 
-						<Select label="Font" name="font" bind:value={font} options={fontOptions} />
+						<Select label={$_('inviteEditor.font')} name="font" bind:value={font} options={fontOptions} />
 
 						<!-- Background Image Upload -->
 						<div class="space-y-2">
-							<label for="bg-image-input" class="block text-sm font-medium text-neutral-700">Background Image</label>
+							<label for="bg-image-input" class="block text-sm font-medium text-neutral-700">{$_('inviteEditor.backgroundImage')}</label>
 							{#if backgroundImageUrl}
 								<div class="relative rounded-lg border border-neutral-200 overflow-hidden">
-									<img src={backgroundImageUrl} alt="Background preview" class="w-full h-24 object-cover" />
+									<img src={backgroundImageUrl} alt={$_('inviteEditor.backgroundPreviewAlt')} class="w-full h-24 object-cover" />
 									<button
 										type="button"
 										onclick={removeBackgroundImage}
 										class="absolute top-1 right-1 rounded-full bg-surface/90 p-1 text-neutral-500 hover:text-error shadow-sm transition-colors"
-										aria-label="Remove background image"
+										aria-label={$_('inviteEditor.removeBackground')}
 									>
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -360,14 +311,14 @@
 										{#if uploading}
 											<div class="flex items-center justify-center gap-2 text-primary">
 												<Spinner size="sm" />
-												<span class="text-sm">Uploading...</span>
+												<span class="text-sm">{$_('inviteEditor.uploading')}</span>
 											</div>
 										{:else}
 											<svg class="w-8 h-8 mx-auto text-neutral-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
 											</svg>
-											<p class="text-xs text-neutral-500">Drop an image or click to upload</p>
-											<p class="text-xs text-neutral-400 mt-0.5">JPEG, PNG, or WebP (max 2MB)</p>
+											<p class="text-xs text-neutral-500">{$_('inviteEditor.dropImage')}</p>
+											<p class="text-xs text-neutral-400 mt-0.5">{$_('inviteEditor.imageFormats')}</p>
 										{/if}
 									</label>
 								</div>
@@ -376,7 +327,7 @@
 					</div>
 				</Card>
 
-				<Button onclick={handleSave} loading={saving} class="w-full">Save Invite Design</Button>
+				<Button onclick={handleSave} loading={saving} class="w-full">{$_('inviteEditor.saveDesign')}</Button>
 
 				{#if saved}
 					<Card class="mt-4">
@@ -385,16 +336,16 @@
 								<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 								</svg>
-								<span class="text-sm font-medium">Design saved</span>
+								<span class="text-sm font-medium">{$_('inviteEditor.designSaved')}</span>
 							</div>
-							<p class="text-xs text-neutral-500">What would you like to do next?</p>
+							<p class="text-xs text-neutral-500">{$_('inviteEditor.whatNext')}</p>
 							<div class="flex flex-col gap-2">
 								{#if event && event.status === 'draft'}
-									<Button onclick={() => publishAndGo('share')} loading={publishing} variant="primary" size="sm" class="w-full">Publish & Share</Button>
-									<Button onclick={() => publishAndGo('dashboard')} variant="outline" size="sm" class="w-full">Publish & View Dashboard</Button>
+									<Button onclick={() => publishAndGo('share')} loading={publishing} variant="primary" size="sm" class="w-full">{$_('inviteEditor.publishShare')}</Button>
+									<Button onclick={() => publishAndGo('dashboard')} variant="outline" size="sm" class="w-full">{$_('inviteEditor.publishDashboard')}</Button>
 								{:else}
-									<Button href="/events/{eventId}/share" variant="primary" size="sm" class="w-full">Share & Get QR Code</Button>
-									<Button href="/events/{eventId}" variant="outline" size="sm" class="w-full">View Event Dashboard</Button>
+									<Button href="/events/{eventId}/share" variant="primary" size="sm" class="w-full">{$_('inviteEditor.shareQr')}</Button>
+									<Button href="/events/{eventId}" variant="outline" size="sm" class="w-full">{$_('inviteEditor.viewDashboard')}</Button>
 								{/if}
 							</div>
 						</div>
@@ -405,7 +356,7 @@
 			<!-- Right: Live preview -->
 			<div>
 				<div class="sticky top-8">
-					<h2 class="text-lg font-semibold font-display text-neutral-900 mb-4">Preview</h2>
+					<h2 class="text-lg font-semibold font-display text-neutral-900 mb-4">{$_('inviteEditor.preview')}</h2>
 					<InviteCardPreview
 						templateId={selectedTemplate}
 						{heading}
