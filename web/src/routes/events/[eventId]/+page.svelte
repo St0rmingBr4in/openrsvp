@@ -833,7 +833,7 @@
 								</div>
 								<div class="flex items-center gap-3 ml-4">
 									{#if attendee.dietaryNotes}
-										<span class="text-xs text-neutral-500" title="Dietary notes">{attendee.dietaryNotes}</span>
+										<span class="text-xs text-neutral-500" title={$_('eventDetail.dietaryNotes')}>{attendee.dietaryNotes}</span>
 									{/if}
 									{#if attendee.plusOnes > 0}
 										<span class="text-xs text-neutral-500">+{attendee.plusOnes}</span>
