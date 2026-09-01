@@ -70,6 +70,10 @@
 	const today = new Date().toISOString().split('T')[0];
 
 	onMount(() => {
+		if (!$currentUser?.isAdmin) {
+			goto('/events');
+			return;
+		}
 		loadAppConfig();
 	});
 

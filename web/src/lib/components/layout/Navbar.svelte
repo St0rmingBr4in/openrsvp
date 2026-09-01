@@ -36,13 +36,13 @@
 					>
 						{$_('nav.dashboard')}
 					</a>
-					<a
-						href="/events/new"
-						class="px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors duration-short ease-out"
-					>
-						{$_('nav.createEvent')}
-					</a>
 					{#if $isAdmin}
+						<a
+							href="/events/new"
+							class="px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors duration-short ease-out"
+						>
+							{$_('nav.createEvent')}
+						</a>
 						<a
 							href="/admin"
 							class="px-3 py-2 rounded-md text-sm font-medium text-primary hover:text-primary-hover hover:bg-primary-light transition-colors duration-short ease-out"
@@ -114,13 +114,13 @@
 				>
 					{$_('nav.dashboard')}
 				</a>
-				<a
-					href="/events/new"
-					class="block px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
-				>
-					{$_('nav.createEvent')}
-				</a>
 				{#if $isAdmin}
+					<a
+						href="/events/new"
+						class="block px-3 py-2 rounded-md text-sm font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+					>
+						{$_('nav.createEvent')}
+					</a>
 					<a
 						href="/admin"
 						class="block px-3 py-2 rounded-md text-sm font-medium text-primary hover:text-primary-hover hover:bg-primary-light"

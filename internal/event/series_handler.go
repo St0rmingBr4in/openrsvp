@@ -12,24 +12,28 @@ import (
 
 // SeriesHandler holds HTTP handlers for event series endpoints.
 type SeriesHandler struct {
-	seriesService  *SeriesService
-	authMiddleware func(http.Handler) http.Handler
-	organizerFrom  OrganizerFromCtx
-	logger         zerolog.Logger
+	seriesService   *SeriesService
+	authMiddleware  func(http.Handler) http.Handler
+	adminMiddleware func(http.Handler) http.Handler
+	organizerFrom   OrganizerFromCtx
+	logger          zerolog.Logger
 }
 
-// NewSeriesHandler creates a new SeriesHandler.
+// NewSeriesHandler creates a new SeriesHandler. adminMiddleware restricts
+// series creation (which creates events) to instance admins.
 func NewSeriesHandler(
 	seriesService *SeriesService,
 	authMiddleware func(http.Handler) http.Handler,
+	adminMiddleware func(http.Handler) http.Handler,
 	organizerFrom OrganizerFromCtx,
 	logger zerolog.Logger,
 ) *SeriesHandler {
 	return &SeriesHandler{
-		seriesService:  seriesService,
-		authMiddleware: authMiddleware,
-		organizerFrom:  organizerFrom,
-		logger:         logger,
+		seriesService:   seriesService,
+		authMiddleware:  authMiddleware,
+		adminMiddleware: adminMiddleware,
+		organizerFrom:   organizerFrom,
+		logger:          logger,
 	}
 }
 
@@ -40,7 +44,8 @@ func (h *SeriesHandler) Routes() chi.Router {
 	// All series routes require authentication.
 	r.Use(h.authMiddleware)
 
-	r.Post("/", h.handleCreateSeries)
+	// Only instance admins may create series (which create events).
+	r.With(h.adminMiddleware).Post("/", h.handleCreateSeries)
 	r.Get("/", h.handleListSeries)
 	r.Get("/{seriesId}", h.handleGetSeries)
 	r.Put("/{seriesId}", h.handleUpdateSeries)

@@ -25,6 +25,12 @@ func organizerFromCtx() OrganizerFromCtx {
 	}
 }
 
+// noAdminRestriction is a passthrough admin middleware for tests that don't
+// exercise the admin-only creation gate.
+func noAdminRestriction(next http.Handler) http.Handler {
+	return next
+}
+
 // setupEventHandler creates an event handler with a fake auth middleware.
 func setupEventHandler(t *testing.T) (http.Handler, *Service, *auth.Organizer) {
 	t.Helper()
@@ -57,6 +63,56 @@ func setupEventHandlerNoAuth(t *testing.T) http.Handler {
 }
 
 func strPtr(s string) *string { return &s }
+
+// --- Admin-only creation ---
+
+func TestHandleCreateEvent_NonAdminForbidden(t *testing.T) {
+	db := testutil.NewTestDB(t)
+	cfg := testutil.TestConfig()
+	store := NewStore(db)
+	svc := NewService(store, cfg.DefaultRetentionDays)
+
+	authStore := auth.NewStore(db)
+	org, err := authStore.CreateOrganizer(context.Background(), "organizer@example.com")
+	require.NoError(t, err)
+	require.False(t, org.IsAdmin)
+
+	authMW := testutil.FakeAuthMiddleware(func(ctx context.Context) context.Context {
+		return auth.ContextWithOrganizer(ctx, org)
+	})
+	handler := NewHandler(svc, authMW, organizerFromCtx(), zerolog.Nop(), WithAdminMiddleware(auth.RequireAdmin()))
+
+	rr := testutil.DoRequest(t, handler.Routes(), "POST", "/", map[string]string{
+		"title":     "Birthday Party",
+		"eventDate": "2026-06-15T14:00",
+	})
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestHandleCreateEvent_AdminAllowed(t *testing.T) {
+	db := testutil.NewTestDB(t)
+	cfg := testutil.TestConfig()
+	store := NewStore(db)
+	svc := NewService(store, cfg.DefaultRetentionDays)
+
+	authStore := auth.NewStore(db)
+	org, err := authStore.CreateOrganizer(context.Background(), "admin@example.com")
+	require.NoError(t, err)
+	org.IsAdmin = true
+
+	authMW := testutil.FakeAuthMiddleware(func(ctx context.Context) context.Context {
+		return auth.ContextWithOrganizer(ctx, org)
+	})
+	handler := NewHandler(svc, authMW, organizerFromCtx(), zerolog.Nop(), WithAdminMiddleware(auth.RequireAdmin()))
+
+	rr := testutil.DoRequest(t, handler.Routes(), "POST", "/", map[string]string{
+		"title":     "Birthday Party",
+		"eventDate": "2026-06-15T14:00",
+	})
+
+	assert.Equal(t, http.StatusCreated, rr.Code)
+}
 
 // --- Create Event ---
 

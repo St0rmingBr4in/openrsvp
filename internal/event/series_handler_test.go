@@ -33,7 +33,7 @@ func setupSeriesHandler(t *testing.T) (http.Handler, database.DB, *auth.Organize
 	authMW := testutil.FakeAuthMiddleware(func(ctx context.Context) context.Context {
 		return auth.ContextWithOrganizer(ctx, org)
 	})
-	handler := NewSeriesHandler(seriesService, authMW, organizerFromCtx(), zerolog.Nop())
+	handler := NewSeriesHandler(seriesService, authMW, noAdminRestriction, organizerFromCtx(), zerolog.Nop())
 	return handler.Routes(), db, org
 }
 
@@ -44,6 +44,32 @@ func validSeriesBody() map[string]any {
 		"eventTime":      "14:00",
 		"recurrenceRule": "weekly",
 	}
+}
+
+// TestHandleCreateSeries_NonAdminForbidden asserts that series creation (which
+// creates events) is gated the same way as direct event creation.
+func TestHandleCreateSeries_NonAdminForbidden(t *testing.T) {
+	db := testutil.NewTestDB(t)
+	cfg := testutil.TestConfig()
+
+	eventStore := NewStore(db)
+	eventService := NewService(eventStore, cfg.DefaultRetentionDays)
+	seriesStore := NewSeriesStore(db)
+	seriesService := NewSeriesService(seriesStore, eventStore, eventService, cfg.DefaultRetentionDays, zerolog.Nop())
+
+	authStore := auth.NewStore(db)
+	org, err := authStore.CreateOrganizer(context.Background(), "organizer@example.com")
+	require.NoError(t, err)
+	require.False(t, org.IsAdmin)
+
+	authMW := testutil.FakeAuthMiddleware(func(ctx context.Context) context.Context {
+		return auth.ContextWithOrganizer(ctx, org)
+	})
+	handler := NewSeriesHandler(seriesService, authMW, auth.RequireAdmin(), organizerFromCtx(), zerolog.Nop())
+
+	rr := testutil.DoRequest(t, handler.Routes(), "POST", "/", validSeriesBody())
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
 }
 
 // TestHandleCreateSeries_ValidationErrorReturns400 pins the correct half of the

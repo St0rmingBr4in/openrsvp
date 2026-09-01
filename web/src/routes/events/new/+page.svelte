@@ -57,6 +57,10 @@
 	);
 
 	onMount(() => {
+		if (!$currentUser?.isAdmin) {
+			goto('/events');
+			return;
+		}
 		loadAppConfig();
 	});
 

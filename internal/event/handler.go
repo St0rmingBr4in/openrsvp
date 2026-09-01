@@ -112,6 +112,7 @@ type Handler struct {
 	service           *Service
 	cohostStore       *CoHostStore
 	authMiddleware    func(http.Handler) http.Handler
+	adminMiddleware   func(http.Handler) http.Handler
 	organizerFrom     OrganizerFromCtx
 	lookupByEmail     OrganizerLookupByEmail
 	notifyCoHost      func(ctx context.Context, coHostEmail, eventID, addedByOrganizerID string)
@@ -133,6 +134,7 @@ func NewHandler(
 	h := &Handler{
 		service:           service,
 		authMiddleware:    authMiddleware,
+		adminMiddleware:   func(next http.Handler) http.Handler { return next }, // default: no restriction, overridable via WithAdminMiddleware
 		organizerFrom:     organizerFrom,
 		logger:            logger,
 		maxCoHosts:        10, // default, overridable via WithMaxCoHosts
@@ -186,6 +188,14 @@ func WithMaxCoHosts(n int) HandlerOption {
 	}
 }
 
+// WithAdminMiddleware restricts event creation to instance admins. Without
+// this option, any authenticated organizer can create events.
+func WithAdminMiddleware(mw func(http.Handler) http.Handler) HandlerOption {
+	return func(h *Handler) {
+		h.adminMiddleware = mw
+	}
+}
+
 // SetNotifyCoHost sets the co-host notification callback after construction.
 func (h *Handler) SetNotifyCoHost(fn func(ctx context.Context, coHostEmail, eventID, addedByOrganizerID string)) {
 	h.notifyCoHost = fn
@@ -198,7 +208,8 @@ func (h *Handler) Routes() chi.Router {
 	// All event routes require authentication.
 	r.Use(h.authMiddleware)
 
-	r.Post("/", h.handleCreate)
+	// Only instance admins may create events.
+	r.With(h.adminMiddleware).Post("/", h.handleCreate)
 	r.Get("/", h.handleList)
 	r.Get("/{eventId}", h.handleGet)
 	r.Put("/{eventId}", h.handleUpdate)

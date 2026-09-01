@@ -107,6 +107,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 	authService := auth.NewService(authStore, cfg, logger)
 	authHandler := auth.NewHandler(authService, cfg, logger)
 	authMiddleware := auth.RequireAuth(authService)
+	adminMiddleware := auth.RequireAdmin()
 
 	organizerFromCtx := func(ctx context.Context) (string, bool) {
 		org := auth.OrganizerFromContext(ctx)
@@ -149,12 +150,13 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 		event.WithCoHostStore(cohostStore),
 		event.WithOrganizerLookup(organizerLookupByEmail),
 		event.WithMaxCoHosts(cfg.MaxCoHostsPerEvent),
+		event.WithAdminMiddleware(adminMiddleware),
 	)
 
 	// Wire up event series layer.
 	seriesStore := event.NewSeriesStore(db)
 	seriesService := event.NewSeriesService(seriesStore, eventStore, eventService, cfg.DefaultRetentionDays, logger)
-	seriesHandler := event.NewSeriesHandler(seriesService, authMiddleware, event.OrganizerFromCtx(organizerFromCtx), logger)
+	seriesHandler := event.NewSeriesHandler(seriesService, authMiddleware, adminMiddleware, event.OrganizerFromCtx(organizerFromCtx), logger)
 
 	// checkEventOwner verifies that the given organizer can manage the event
 	// (either as owner or co-host).
@@ -920,7 +922,6 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 	// Wire up admin stats layer.
 	statsStore := stats.NewStore(db)
 	statsService := stats.NewService(statsStore, logger)
-	adminMiddleware := auth.RequireAdmin()
 	statsHandler := stats.NewHandler(statsService, authMiddleware, adminMiddleware, logger)
 
 	// Wire up instance setup/config layer. DB-backed non-secret overrides
