@@ -152,12 +152,19 @@
 	});
 
 	const contactReq = $derived(eventData?.contactRequirement ?? 'email_or_phone');
+	// Mirrors the validation in handleSubmit below: email/phone are individually
+	// required per contactReq, plus the "must be reachable somehow" fallback
+	// that requires email when SMS isn't configured on this instance. These
+	// used to gate phoneRequired on $smsEnabled, which showed phone as
+	// optional (no asterisk) even when contactReq === 'email_and_phone' or
+	// 'phone' — the requirement isn't about SMS, it's about what the
+	// organizer asked for.
 	const emailRequired = $derived(
-		!$smsEnabled || contactReq === 'email' || contactReq === 'email_and_phone' || contactReq === 'email_or_phone'
+		contactReq === 'email' ||
+			contactReq === 'email_and_phone' ||
+			(!$smsEnabled && (contactReq === 'phone' || contactReq === 'email_or_phone'))
 	);
-	const phoneRequired = $derived(
-		$smsEnabled && (contactReq === 'phone' || contactReq === 'email_and_phone')
-	);
+	const phoneRequired = $derived(contactReq === 'phone' || contactReq === 'email_and_phone');
 
 	// RSVP deadline display logic
 	const deadlineText = $derived.by(() => {
