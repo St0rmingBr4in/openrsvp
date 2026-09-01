@@ -69,7 +69,7 @@
 
 <div
 	class="min-h-screen flex items-center justify-center px-4 py-12"
-	style="background: linear-gradient(135deg, #FAFAF9 0%, #FFF1F3 50%, #FDE8EC 100%);"
+	style="background: linear-gradient(135deg, var(--color-neutral-50) 0%, var(--color-primary-lighter) 50%, var(--color-primary-light) 100%);"
 >
 	<div class="w-full max-w-md">
 		<div class="text-center mb-6">

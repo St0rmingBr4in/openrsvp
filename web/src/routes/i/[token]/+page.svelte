@@ -304,7 +304,7 @@
 </svelte:head>
 
 <div class="invite-page min-h-screen flex flex-col items-center justify-start px-4 py-8 sm:py-12"
-	style="background: linear-gradient(135deg, #FAFAF9 0%, #FFF1F3 50%, #FDE8EC 100%);"
+	style="background: linear-gradient(135deg, var(--color-neutral-50) 0%, var(--color-primary-lighter) 50%, var(--color-primary-light) 100%);"
 >
 	{#if loading}
 		<div class="flex items-center justify-center min-h-[60vh]">
