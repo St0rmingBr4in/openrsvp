@@ -31,6 +31,16 @@ func rsvpOrgFromCtx() rsvp.OrganizerFromCtx {
 	}
 }
 
+func rsvpOrgEmailFromCtx() rsvp.OrganizerEmailFromCtx {
+	return func(ctx context.Context) (string, bool) {
+		org := auth.OrganizerFromContext(ctx)
+		if org == nil {
+			return "", false
+		}
+		return org.Email, true
+	}
+}
+
 // makeCheckEventOwner returns an EventOwnershipChecker backed by the given event service.
 func makeCheckEventOwner(eventSvc *event.Service) rsvp.EventOwnershipChecker {
 	return func(ctx context.Context, eventID, organizerID string) error {
@@ -67,7 +77,7 @@ func setupRSVPHandler(t *testing.T) (http.Handler, *rsvp.Service, *event.Service
 	authMW := testutil.FakeAuthMiddleware(func(ctx context.Context) context.Context {
 		return auth.ContextWithOrganizer(ctx, org)
 	})
-	handler := rsvp.NewHandler(rsvpSvc, authMW, rsvpOrgFromCtx(), makeCheckEventOwner(eventSvc), zerolog.Nop())
+	handler := rsvp.NewHandler(rsvpSvc, authMW, rsvpOrgFromCtx(), rsvpOrgEmailFromCtx(), makeCheckEventOwner(eventSvc), zerolog.Nop())
 	return handler.Routes(), rsvpSvc, eventSvc, org
 }
 
@@ -90,7 +100,7 @@ func setupRSVPHandlerNoAuth(t *testing.T) (http.Handler, *event.Service, *auth.O
 	rsvpStore := rsvp.NewStore(db)
 	rsvpSvc := rsvp.NewService(rsvpStore, eventSvc, inviteSvc, zerolog.Nop())
 
-	handler := rsvp.NewHandler(rsvpSvc, testutil.NoAuthMiddleware(), rsvpOrgFromCtx(), makeCheckEventOwner(eventSvc), zerolog.Nop())
+	handler := rsvp.NewHandler(rsvpSvc, testutil.NoAuthMiddleware(), rsvpOrgFromCtx(), rsvpOrgEmailFromCtx(), makeCheckEventOwner(eventSvc), zerolog.Nop())
 	return handler.Routes(), eventSvc, org
 }
 

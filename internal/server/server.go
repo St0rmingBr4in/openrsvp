@@ -116,6 +116,14 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 		return org.ID, true
 	}
 
+	organizerEmailFromCtx := func(ctx context.Context) (string, bool) {
+		org := auth.OrganizerFromContext(ctx)
+		if org == nil {
+			return "", false
+		}
+		return org.Email, true
+	}
+
 	// Wire up event layer.
 	eventStore := event.NewStore(db)
 	eventService := event.NewService(eventStore, cfg.DefaultRetentionDays)
@@ -181,7 +189,7 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 	rsvpService := rsvp.NewService(rsvpStore, eventService, inviteService, logger)
 	rsvpService.SetSMSEnabled(cfg.SMSEnabled())
 	rsvpService.SetBaseURL(cfg.BaseURL)
-	rsvpHandler := rsvp.NewHandler(rsvpService, authMiddleware, rsvp.OrganizerFromCtx(organizerFromCtx), rsvp.EventOwnershipChecker(checkEventOwner), logger)
+	rsvpHandler := rsvp.NewHandler(rsvpService, authMiddleware, rsvp.OrganizerFromCtx(organizerFromCtx), rsvp.OrganizerEmailFromCtx(organizerEmailFromCtx), rsvp.EventOwnershipChecker(checkEventOwner), logger)
 
 	// Wire up question layer.
 	questionStore := question.NewStore(db)
@@ -540,13 +548,6 @@ func New(cfg *config.Config, db database.DB, logger zerolog.Logger) *Server {
 			})
 			return sendErr
 		})
-	}
-	organizerEmailFromCtx := func(ctx context.Context) (string, bool) {
-		org := auth.OrganizerFromContext(ctx)
-		if org == nil {
-			return "", false
-		}
-		return org.Email, true
 	}
 	feedbackHandler := feedback.NewHandler(feedbackSvc, authMiddleware, feedback.OrganizerFromCtx(organizerEmailFromCtx), logger)
 

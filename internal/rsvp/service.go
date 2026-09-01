@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"hash/fnv"
+	"sort"
 	"sync"
 	"time"
 
@@ -526,6 +527,37 @@ type RsvpWithEvent struct {
 	WaitlistPosition *int               `json:"waitlistPosition,omitempty"`
 	Questions        any                `json:"questions,omitempty"`
 	Answers          any                `json:"answers,omitempty"`
+}
+
+// ListMyRSVPs returns every RSVP the given email is registered for, across
+// all organizers' events, most upcoming first. Used by the authenticated
+// "my events" guest view rather than the anonymous token-based RSVP page.
+func (s *Service) ListMyRSVPs(ctx context.Context, email string) ([]*RsvpWithEvent, error) {
+	attendees, err := s.store.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("list my rsvps: %w", err)
+	}
+
+	results := make([]*RsvpWithEvent, 0, len(attendees))
+	for _, a := range attendees {
+		ev, err := s.eventService.GetByID(ctx, a.EventID)
+		if err != nil {
+			// The event may have been deleted out from under a lingering
+			// attendee row; skip it rather than failing the whole list.
+			continue
+		}
+		results = append(results, &RsvpWithEvent{
+			Attendee:   a,
+			Event:      ev.ToPublic(),
+			ShareToken: ev.ShareToken,
+		})
+	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Event.EventDate < results[j].Event.EventDate
+	})
+
+	return results, nil
 }
 
 // GetByToken retrieves an attendee by their RSVP token.

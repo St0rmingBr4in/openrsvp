@@ -20,6 +20,9 @@ import (
 // OrganizerFromCtx extracts the organizer ID from the request context.
 type OrganizerFromCtx func(ctx context.Context) (id string, ok bool)
 
+// OrganizerEmailFromCtx extracts the organizer's email from the request context.
+type OrganizerEmailFromCtx func(ctx context.Context) (email string, ok bool)
+
 // EventOwnershipChecker verifies that the given organizer owns the event.
 // Returns nil if ownership is confirmed; a non-nil error otherwise.
 type EventOwnershipChecker func(ctx context.Context, eventID, organizerID string) error
@@ -29,16 +32,18 @@ type Handler struct {
 	service         *Service
 	authMiddleware  func(http.Handler) http.Handler
 	organizerFrom   OrganizerFromCtx
+	organizerEmail  OrganizerEmailFromCtx
 	checkEventOwner EventOwnershipChecker
 	logger          zerolog.Logger
 }
 
 // NewHandler creates a new RSVP Handler.
-func NewHandler(service *Service, authMiddleware func(http.Handler) http.Handler, organizerFrom OrganizerFromCtx, checkEventOwner EventOwnershipChecker, logger zerolog.Logger) *Handler {
+func NewHandler(service *Service, authMiddleware func(http.Handler) http.Handler, organizerFrom OrganizerFromCtx, organizerEmail OrganizerEmailFromCtx, checkEventOwner EventOwnershipChecker, logger zerolog.Logger) *Handler {
 	return &Handler{
 		service:         service,
 		authMiddleware:  authMiddleware,
 		organizerFrom:   organizerFrom,
+		organizerEmail:  organizerEmail,
 		checkEventOwner: checkEventOwner,
 		logger:          logger,
 	}
@@ -60,6 +65,7 @@ func (h *Handler) Routes() chi.Router {
 	// Authenticated routes.
 	r.Group(func(auth chi.Router) {
 		auth.Use(h.authMiddleware)
+		auth.Get("/mine", h.handleListMine)
 		auth.Get("/event/{eventId}", h.handleListByEvent)
 		auth.Get("/event/{eventId}/stats", h.handleStats)
 		auth.Get("/event/{eventId}/export", h.handleExportCSV)
@@ -377,6 +383,24 @@ func (h *Handler) handleUpdateAttendee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"data": attendee})
+}
+
+func (h *Handler) handleListMine(w http.ResponseWriter, r *http.Request) {
+	email, ok := h.organizerEmail(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized", "authentication required")
+		return
+	}
+
+	rsvps, err := h.service.ListMyRSVPs(r.Context(), email)
+	if err != nil {
+		ref := errcode.Ref()
+		h.logger.Error().Err(err).Str("error_ref", ref).Msg("failed to list my rsvps")
+		writeError(w, http.StatusInternalServerError, "internal_error", "an internal error occurred (ref: "+ref+")")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"data": rsvps})
 }
 
 func (h *Handler) handleListByEvent(w http.ResponseWriter, r *http.Request) {

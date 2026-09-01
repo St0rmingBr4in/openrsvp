@@ -102,6 +102,33 @@ func (s *Store) FindByEventAndPhone(ctx context.Context, eventID, phone string) 
 	return scanAttendee(row)
 }
 
+// FindByEmail retrieves every attendee record across all events for the
+// given email address (case-insensitive), most recently created first.
+func (s *Store) FindByEmail(ctx context.Context, email string) ([]*Attendee, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, event_id, name, email, phone, rsvp_status, rsvp_token, contact_method, dietary_notes, plus_ones, import_source, created_at, updated_at
+		 FROM attendees WHERE LOWER(email) = LOWER(?) ORDER BY created_at DESC`, email,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("find attendees by email: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	var attendees []*Attendee
+	for rows.Next() {
+		a, err := scanAttendeeRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		attendees = append(attendees, a)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate attendees: %w", err)
+	}
+
+	return attendees, nil
+}
+
 // Update persists changes to an existing attendee record.
 func (s *Store) Update(ctx context.Context, a *Attendee) error {
 	now := time.Now().UTC().Format(time.RFC3339)

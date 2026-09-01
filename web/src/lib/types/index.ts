@@ -145,6 +145,14 @@ export interface PublicAttendance {
 	names?: string[];
 }
 
+// MyRSVP bundles an attendee record with its (public) event, for the
+// authenticated "events I'm registered for" guest view.
+export interface MyRSVP {
+	attendee: Attendee;
+	event: PublicEvent;
+	shareToken?: string;
+}
+
 export interface CoHost {
 	id: string;
 	eventId: string;
