@@ -214,6 +214,59 @@ func TestSMTPProvider_Send_WithAttachment(t *testing.T) {
 	}
 }
 
+func TestSMTPProvider_Send_CustomHeaders(t *testing.T) {
+	srv := newCaptureSMTP(t)
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.addr)
+	p := NewSMTPProvider(host, port, "", "", "from@example.com")
+	msg := &notification.Message{
+		To:      "to@example.com",
+		Subject: "Subj",
+		Body:    "b",
+		Headers: map[string]string{
+			"List-Unsubscribe": "<https://example.com/unsubscribe?token=abc>",
+		},
+	}
+	if _, err := p.Send(context.Background(), msg); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	data := srv.Data()
+	if !strings.Contains(data, "List-Unsubscribe: <https://example.com/unsubscribe?token=abc>\r\n") {
+		t.Fatalf("missing List-Unsubscribe header:\n%s", data)
+	}
+}
+
+// TestSMTPProvider_Send_HeaderInjectionInCustomHeader mirrors the existing
+// From/To/Subject injection defense for the generic Headers map, since its
+// values are attacker-influenced in the same way (they end up derived from
+// data the notification service builds per-recipient).
+func TestSMTPProvider_Send_HeaderInjectionInCustomHeader(t *testing.T) {
+	srv := newCaptureSMTP(t)
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.addr)
+	p := NewSMTPProvider(host, port, "", "", "from@example.com")
+	msg := &notification.Message{
+		To:      "to@example.com",
+		Subject: "Subj",
+		Body:    "b",
+		Headers: map[string]string{
+			"List-Unsubscribe": "<https://example.com/x>\r\nBcc: evil@x.com",
+		},
+	}
+	if _, err := p.Send(context.Background(), msg); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	data := srv.Data()
+	for _, line := range strings.Split(data, "\n") {
+		line = strings.TrimRight(line, "\r")
+		if strings.HasPrefix(line, "Bcc:") {
+			t.Fatalf("header injection succeeded via custom header:\n%s", data)
+		}
+	}
+}
+
 func TestSMTPProvider_NameChannel(t *testing.T) {
 	p := NewSMTPProvider("h", "25", "", "", "f@x")
 	if p.Name() != "smtp" {

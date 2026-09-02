@@ -189,6 +189,7 @@ func TestService_UnsubscribeFooter_AddedWithSuppression(t *testing.T) {
 	require.NotNil(t, prov.last)
 	assert.Contains(t, prov.last.Body, "/unsubscribe?token=tok-alice@example.com")
 	assert.Contains(t, prov.last.Plain, "/unsubscribe?token=tok-alice@example.com")
+	assert.Equal(t, "<https://rsvp.example.com/unsubscribe?token=tok-alice@example.com>", prov.last.Headers["List-Unsubscribe"])
 }
 
 func TestService_UnsubscribeFooter_AbsentWithoutSuppression(t *testing.T) {
@@ -210,6 +211,7 @@ func TestService_UnsubscribeFooter_AbsentWithoutSuppression(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, prov.last)
 	assert.NotContains(t, prov.last.Body, "unsubscribe")
+	assert.NotContains(t, prov.last.Headers, "List-Unsubscribe")
 }
 
 // newTestHandler builds a Handler with stub auth/owner funcs for webhook tests.

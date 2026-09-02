@@ -207,6 +207,11 @@ func (s *Service) applyUnsubscribeFooter(ctx context.Context, msg *Message, even
 	base := strings.TrimRight(s.opts.BaseURL, "/")
 	link := fmt.Sprintf("%s/unsubscribe?token=%s", base, token)
 
+	if msg.Headers == nil {
+		msg.Headers = make(map[string]string)
+	}
+	msg.Headers["List-Unsubscribe"] = fmt.Sprintf("<%s>", link)
+
 	if msg.Body != "" {
 		footerHTML := fmt.Sprintf(
 			`<div style="margin-top:24px;font-size:12px;color:#A8A29E;text-align:center">`+

@@ -10,6 +10,7 @@ import (
 	"mime/quotedprintable"
 	"net"
 	"net/smtp"
+	"sort"
 	"strings"
 	"time"
 
@@ -78,6 +79,15 @@ func (p *SMTPProvider) Send(ctx context.Context, msg *notification.Message) (*no
 	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", mime.QEncoding.Encode("utf-8", stripCRLF(msg.Subject))))
 	buf.WriteString("MIME-Version: 1.0\r\n")
 	buf.WriteString(fmt.Sprintf("Date: %s\r\n", time.Now().UTC().Format(time.RFC1123Z)))
+	// Sorted for deterministic output (map iteration order is random).
+	headerNames := make([]string, 0, len(msg.Headers))
+	for name := range msg.Headers {
+		headerNames = append(headerNames, name)
+	}
+	sort.Strings(headerNames)
+	for _, name := range headerNames {
+		buf.WriteString(fmt.Sprintf("%s: %s\r\n", stripCRLF(name), stripCRLF(msg.Headers[name])))
+	}
 
 	altBoundary := fmt.Sprintf("==OpenRSVP-alt==%d==", time.Now().UnixNano())
 

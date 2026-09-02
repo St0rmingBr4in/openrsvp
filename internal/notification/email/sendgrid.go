@@ -53,6 +53,7 @@ type sendGridRequest struct {
 	Subject          string                    `json:"subject"`
 	Content          []sendGridContent         `json:"content"`
 	Attachments      []sendGridAttachment      `json:"attachments,omitempty"`
+	Headers          map[string]string         `json:"headers,omitempty"`
 }
 
 // sendGridAttachment represents a file attachment in the SendGrid API.
@@ -123,6 +124,7 @@ func (p *SendGridProvider) Send(ctx context.Context, msg *notification.Message) 
 		From:    sendGridAddress{Email: p.from},
 		Subject: msg.Subject,
 		Content: content,
+		Headers: msg.Headers,
 	}
 
 	// Add attachments if present.
