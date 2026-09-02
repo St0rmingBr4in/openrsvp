@@ -4,10 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"math/big"
 	"net"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/yannkr/openrsvp/internal/notification"
 )
@@ -229,6 +235,75 @@ func TestSMTPProvider_HealthCheck(t *testing.T) {
 	}
 }
 
+// --- Implicit TLS (port 465, e.g. OVH's MX Plan) ----------------------------
+
+// withImplicitTLSPort points the implicitTLSPort var at the given (ephemeral,
+// unprivileged) test port for the duration of the test, restoring the real
+// "465" afterward. Binding the actual privileged port 465 isn't available in
+// CI, so tests exercise the branch logic against a stand-in port instead.
+func withImplicitTLSPort(t *testing.T, port string) {
+	t.Helper()
+	old := implicitTLSPort
+	implicitTLSPort = port
+	t.Cleanup(func() { implicitTLSPort = old })
+}
+
+func TestSMTPProvider_Send_ImplicitTLS(t *testing.T) {
+	srv, pool := newCaptureSMTPTLS(t)
+	defer srv.Close()
+
+	host, port, err := net.SplitHostPort(srv.addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	withImplicitTLSPort(t, port)
+
+	provider := &SMTPProvider{
+		host:      host,
+		port:      port,
+		username:  "user",
+		password:  "pass",
+		from:      "from@example.com",
+		tlsConfig: &tls.Config{ServerName: host, RootCAs: pool},
+	}
+
+	if _, err := provider.Send(context.Background(), &notification.Message{
+		To:      "to@example.com",
+		Subject: "Hi",
+		Body:    "hello",
+	}); err != nil {
+		t.Fatalf("Send over implicit TLS: %v", err)
+	}
+
+	data := srv.Data()
+	if !strings.Contains(data, "Subject: Hi") {
+		t.Fatalf("expected message body to be delivered over TLS:\n%s", data)
+	}
+	if !srv.sawAuth {
+		t.Fatalf("expected AUTH to be attempted over the encrypted connection")
+	}
+}
+
+func TestSMTPProvider_HealthCheck_ImplicitTLS(t *testing.T) {
+	srv, pool := newCaptureSMTPTLS(t)
+	defer srv.Close()
+
+	host, port, err := net.SplitHostPort(srv.addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	withImplicitTLSPort(t, port)
+
+	provider := &SMTPProvider{
+		host:      host,
+		port:      port,
+		tlsConfig: &tls.Config{ServerName: host, RootCAs: pool},
+	}
+	if err := provider.HealthCheck(context.Background()); err != nil {
+		t.Fatalf("HealthCheck over implicit TLS: %v", err)
+	}
+}
+
 func TestSMTPProvider_HealthCheck_DialError(t *testing.T) {
 	p := NewSMTPProvider("127.0.0.1", "1", "", "", "f@x")
 	if err := p.HealthCheck(context.Background()); err == nil {
@@ -255,11 +330,12 @@ func boolToInt(b bool) int {
 // captureSMTP is a minimal SMTP server that accepts one message and records
 // the DATA payload, sufficient to exercise net/smtp.SendMail.
 type captureSMTP struct {
-	ln   net.Listener
-	addr string
-	mu   sync.Mutex
-	data string
-	done chan struct{}
+	ln      net.Listener
+	addr    string
+	mu      sync.Mutex
+	data    string
+	sawAuth bool
+	done    chan struct{}
 }
 
 func newCaptureSMTP(t *testing.T) *captureSMTP {
@@ -315,7 +391,12 @@ func (s *captureSMTP) serve() {
 		cmd := strings.ToUpper(strings.TrimSpace(line))
 		switch {
 		case strings.HasPrefix(cmd, "EHLO"), strings.HasPrefix(cmd, "HELO"):
-			write("250-capture\r\n250 OK\r\n")
+			write("250-capture\r\n250-AUTH PLAIN LOGIN\r\n250 OK\r\n")
+		case strings.HasPrefix(cmd, "AUTH"):
+			s.mu.Lock()
+			s.sawAuth = true
+			s.mu.Unlock()
+			write("235 OK\r\n")
 		case strings.HasPrefix(cmd, "MAIL FROM"):
 			write("250 OK\r\n")
 		case strings.HasPrefix(cmd, "RCPT TO"):
@@ -338,4 +419,63 @@ func (s *captureSMTP) serve() {
 	s.data = body.String()
 	s.mu.Unlock()
 	close(s.done)
+}
+
+// newCaptureSMTPTLS starts the same capture server as newCaptureSMTP, but
+// behind a TLS listener using an in-memory self-signed certificate — used to
+// exercise the implicit-TLS (port 465 / SMTPS) dial path. Returns the server
+// and a cert pool that trusts its certificate, for the client's tlsConfig.
+func newCaptureSMTPTLS(t *testing.T) (*captureSMTP, *x509.CertPool) {
+	t.Helper()
+
+	cert, pool := generateSelfSignedCert(t)
+
+	inner, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ln := tls.NewListener(inner, &tls.Config{Certificates: []tls.Certificate{cert}})
+
+	s := &captureSMTP{ln: ln, addr: inner.Addr().String(), done: make(chan struct{})}
+	go s.serve()
+	return s, pool
+}
+
+// generateSelfSignedCert creates a short-lived, in-memory certificate for
+// 127.0.0.1, plus a pool that trusts it, so tests can complete a real TLS
+// handshake without touching the system trust store.
+func generateSelfSignedCert(t *testing.T) (tls.Certificate, *x509.CertPool) {
+	t.Helper()
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		NotBefore:    time.Now().Add(-time.Minute),
+		NotAfter:     time.Now().Add(time.Hour),
+		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert := tls.Certificate{
+		Certificate: [][]byte{der},
+		PrivateKey:  key,
+		Leaf:        leaf,
+	}
+
+	pool := x509.NewCertPool()
+	pool.AddCert(leaf)
+
+	return cert, pool
 }

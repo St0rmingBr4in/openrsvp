@@ -3,6 +3,7 @@ package email
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"mime"
@@ -15,6 +16,14 @@ import (
 	"github.com/yannkr/openrsvp/internal/notification"
 )
 
+// implicitTLSPort is the SMTPS convention: the server expects a TLS
+// handshake as the very first bytes on the wire, rather than a plaintext
+// greeting followed by an opportunistic STARTTLS upgrade. Several providers
+// (OVH's MX Plan among them) only offer this on port 465, with no STARTTLS
+// alternative. A var, not a const, so tests can point it at an unprivileged
+// ephemeral port instead of binding the real (privileged) 465.
+var implicitTLSPort = "465"
+
 // SMTPProvider sends emails via SMTP.
 type SMTPProvider struct {
 	host     string
@@ -22,6 +31,10 @@ type SMTPProvider struct {
 	username string
 	password string
 	from     string
+	// tlsConfig overrides the default {ServerName: host} TLS config when
+	// non-nil. Production leaves this nil (system root CA pool); tests set
+	// it to trust an in-memory self-signed certificate.
+	tlsConfig *tls.Config
 }
 
 // NewSMTPProvider creates a new SMTPProvider with the given SMTP configuration.
@@ -56,8 +69,6 @@ func (p *SMTPProvider) Channel() notification.Channel {
 //
 // Without attachments, the structure is just multipart/alternative.
 func (p *SMTPProvider) Send(ctx context.Context, msg *notification.Message) (*notification.SendResult, error) {
-	addr := net.JoinHostPort(p.host, p.port)
-
 	var buf bytes.Buffer
 	// Defensive: strip CR/LF from header values to defeat header injection
 	// even if upstream validation is bypassed. mime.QEncoding handles the
@@ -115,18 +126,100 @@ func (p *SMTPProvider) Send(ctx context.Context, msg *notification.Message) (*no
 		buf.WriteString(fmt.Sprintf("--%s--\r\n", altBoundary))
 	}
 
-	// Send via SMTP.
-	var auth smtp.Auth
-	if p.username != "" && p.password != "" {
-		auth = smtp.PlainAuth("", p.username, p.password, p.host)
-	}
-
-	to := []string{msg.To}
-	if err := smtp.SendMail(addr, auth, p.from, to, buf.Bytes()); err != nil {
+	if err := p.sendMail(ctx, []string{msg.To}, buf.Bytes()); err != nil {
 		return nil, fmt.Errorf("smtp send: %w", err)
 	}
 
 	return &notification.SendResult{}, nil
+}
+
+// tlsConfigOrDefault returns the injected TLS config for tests, or the
+// production default of trusting the system root CA pool for p.host.
+func (p *SMTPProvider) tlsConfigOrDefault() *tls.Config {
+	if p.tlsConfig != nil {
+		return p.tlsConfig
+	}
+	return &tls.Config{ServerName: p.host}
+}
+
+// dial connects to the SMTP server and completes the EHLO/HELO exchange,
+// choosing implicit TLS or plaintext-with-opportunistic-STARTTLS based on
+// the configured port. The returned client is ready for MAIL/RCPT/DATA (or
+// QUIT for a health check); the caller must Close it.
+func (p *SMTPProvider) dial(ctx context.Context) (*smtp.Client, error) {
+	addr := net.JoinHostPort(p.host, p.port)
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+
+	var conn net.Conn
+	var err error
+	if p.port == implicitTLSPort {
+		conn, err = (&tls.Dialer{NetDialer: dialer, Config: p.tlsConfigOrDefault()}).DialContext(ctx, "tcp", addr)
+	} else {
+		conn, err = dialer.DialContext(ctx, "tcp", addr)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("dial: %w", err)
+	}
+
+	client, err := smtp.NewClient(conn, p.host)
+	if err != nil {
+		_ = conn.Close()
+		return nil, fmt.Errorf("handshake: %w", err)
+	}
+
+	if err := client.Hello("localhost"); err != nil {
+		_ = client.Close()
+		return nil, fmt.Errorf("hello: %w", err)
+	}
+
+	// Already encrypted from the first byte on an implicit-TLS port; only
+	// negotiate STARTTLS when the connection started out in plaintext.
+	if p.port != implicitTLSPort {
+		if ok, _ := client.Extension("STARTTLS"); ok {
+			if err := client.StartTLS(p.tlsConfigOrDefault()); err != nil {
+				_ = client.Close()
+				return nil, fmt.Errorf("starttls: %w", err)
+			}
+		}
+	}
+
+	return client, nil
+}
+
+// sendMail delivers one message over a freshly dialed connection.
+func (p *SMTPProvider) sendMail(ctx context.Context, to []string, body []byte) error {
+	client, err := p.dial(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = client.Close() }()
+
+	if p.username != "" && p.password != "" {
+		if ok, _ := client.Extension("AUTH"); ok {
+			if err := client.Auth(smtp.PlainAuth("", p.username, p.password, p.host)); err != nil {
+				return fmt.Errorf("auth: %w", err)
+			}
+		}
+	}
+	if err := client.Mail(p.from); err != nil {
+		return fmt.Errorf("mail from: %w", err)
+	}
+	for _, rcpt := range to {
+		if err := client.Rcpt(rcpt); err != nil {
+			return fmt.Errorf("rcpt to: %w", err)
+		}
+	}
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("data: %w", err)
+	}
+	if _, err := w.Write(body); err != nil {
+		return fmt.Errorf("write body: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return fmt.Errorf("close data: %w", err)
+	}
+	return client.Quit()
 }
 
 // writeAlternativeParts writes the text/plain and text/html MIME parts inside
@@ -182,30 +275,11 @@ func stripCRLF(s string) string {
 
 // HealthCheck dials the SMTP server to verify connectivity.
 func (p *SMTPProvider) HealthCheck(ctx context.Context) error {
-	addr := net.JoinHostPort(p.host, p.port)
-
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
-	conn, err := dialer.DialContext(ctx, "tcp", addr)
+	client, err := p.dial(ctx)
 	if err != nil {
-		return fmt.Errorf("smtp health check dial: %w", err)
-	}
-	defer func() { _ = conn.Close() }()
-
-	// Attempt SMTP handshake.
-	host := p.host
-	if idx := strings.Index(host, ":"); idx != -1 {
-		host = host[:idx]
-	}
-
-	client, err := smtp.NewClient(conn, host)
-	if err != nil {
-		return fmt.Errorf("smtp health check handshake: %w", err)
+		return fmt.Errorf("smtp health check: %w", err)
 	}
 	defer func() { _ = client.Close() }()
-
-	if err := client.Hello("localhost"); err != nil {
-		return fmt.Errorf("smtp health check hello: %w", err)
-	}
 
 	return client.Quit()
 }
